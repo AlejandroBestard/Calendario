@@ -101,5 +101,32 @@ private int GetIsoDayOfWeek(DateTime date) => date.DayOfWeek == DayOfWeek.Sunday
             }
             return nuevasReglas;
         }
+        public List<ReglaCalendario> ParsearIcal(string contenidoIcs)
+{
+    var reglas = new List<ReglaCalendario>();
+    var lineas = contenidoIcs.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+    ReglaCalendario? actual = null;
+
+    foreach (var linea in lineas)
+    {
+        if (linea.StartsWith("BEGIN:VEVENT")) actual = new ReglaCalendario { Tipo = TipoRegla.Puntual };
+        else if (linea.StartsWith("SUMMARY:") && actual != null) actual.Titulo = linea.Replace("SUMMARY:", "").Trim();
+        else if (linea.StartsWith("DTSTART:") && actual != null) {
+            var fechaStr = linea.Replace("DTSTART:", "").Trim(); // Formato YYYYMMDDTHHMMSS
+            if (DateTime.TryParseExact(fechaStr.Substring(0, 8), "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var f))
+                actual.FechaInicio = f;
+            if (fechaStr.Contains("T")) actual.HoraInicio = TimeSpan.ParseExact(fechaStr.Substring(9, 4), "hhmm", null);
+        }
+        else if (linea.StartsWith("END:VEVENT") && actual != null) {
+            actual.FechaFin = actual.FechaInicio;
+            actual.HoraFin = actual.HoraInicio.Add(TimeSpan.FromHours(1));
+            reglas.Add(actual);
+            actual = null;
+        }
     }
+    return reglas;
+}
+    }
+
+    
 }
