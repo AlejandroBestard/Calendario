@@ -6,86 +6,134 @@
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 @inject CalendarEngine Engine
+@inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    @* CABECERA DEL DASHBOARD *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-8">
+        <div>
+            <MudText Typo="Typo.h3"><b>Hola, Alejandro</b></MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">
+                Hoy es @DateTime.Now.ToString("dddd, dd 'de' MMMM")
+            </MudText>
+        </div>
+        <MudAvatar Color="Color.Primary" Style="height:70px; width:70px; font-size:2rem;">A</MudAvatar>
+    </MudStack>
+
     <MudGrid>
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="4" Class="pa-6 rounded-lg"
-                Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <MudText Typo="Typo.h5">@DateTime.Now.ToString("dddd, dd MMMM")</MudText>
-                <MudDivider Light="true" Class="my-4" />
-                <div class="d-flex align-center">
-                    <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" Class="mr-4" />
-                    <div>
-                        <MudText Typo="Typo.h3">22°C</MudText>
-                        <MudText Typo="Typo.subtitle1">Soleado - Madrid</MudText>
-                    </div>
-                </div>
+        @* SECCIÓN PRINCIPAL: EVENTOS DE HOY *@
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="pa-6" Style="background: #f8f9fa; border-radius: 24px;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6">
+                    <MudIcon Icon="@Icons.Material.Filled.Today" Color="Color.Primary" />
+                    <MudText Typo="Typo.h5"><b>Próximos eventos para hoy</b></MudText>
+                </MudStack>
+
+                <MudGrid>
+                    @if (EventosHoy.Any())
+                    {
+                        @foreach (var ev in EventosHoy)
+                        {
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudPaper Elevation="3" Class="pa-5 rounded-xl" 
+                                          Style="@($"border-left: 8px solid {ev.Color}; background: white;")">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@ev.Categoria</MudText>
+                                        <MudText Typo="Typo.h6"><b>@ev.Titulo</b></MudText>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Info" />
+                                            <MudText Typo="Typo.body2">@ev.HoraInicio</MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    }
+                    else
+                    {
+                        <MudItem xs="12">
+                            <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Default" Style="opacity:0.3" />
+                                <MudText Typo="Typo.h6" Color="Color.Secondary">No tienes nada programado para hoy</MudText>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" href="/gestion-calendarios">Crear nueva regla</MudButton>
+                            </MudStack>
+                        </MudItem>
+                    }
+                </MudGrid>
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" md="8">
-            <MudText Typo="Typo.h5" Class="mb-4"><b>Eventos para hoy</b></MudText>
-
-            @if (EventosHoy.Any())
-            {
-                <MudStack Spacing="2">
-                    @foreach (var ev in EventosHoy)
-                    {
-                        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled"
-                            Style="@($"background-color: {ev.Color}22; color: #333; border-left: 6px solid {ev.Color}")">
-                            <div class="d-flex justify-space-between align-center">
-                                <MudText Typo="Typo.body1"><b>@ev.Titulo</b></MudText>
-                                <MudText Typo="Typo.body2">@ev.HoraInicio - @ev.HoraFin</MudText>
-                            </div>
-                        </MudAlert>
-                    }
-                </MudStack>
-            }
-            else
-            {
-                <MudPaper Class="pa-8 d-flex flex-column align-center justify-center" Style="border: 2px dashed #ccc;">
-                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Default" />
-                    <MudText Color="Color.Secondary">No tienes eventos programados para hoy</MudText>
-                </MudPaper>
-            }
+        @* SECCIÓN INFERIOR: ACCESOS RÁPIDOS *@
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg d-flex align-center" href="/clima" Style="cursor:pointer">
+                <MudIcon Icon="@Icons.Material.Filled.WbSunny" Color="Color.Warning" Class="mr-4" Size="Size.Large" />
+                <div>
+                    <MudText Typo="Typo.body1"><b>Ver el tiempo</b></MudText>
+                    <MudText Typo="Typo.caption">Consulta la previsión semanal</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-4 rounded-lg d-flex align-center" href="/calendario-oficial" Style="cursor:pointer">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Secondary" Class="mr-4" Size="Size.Large" />
+                <div>
+                    <MudText Typo="Typo.body1"><b>Calendario Completo</b></MudText>
+                    <MudText Typo="Typo.caption">Vista mensual, semanal y anual</MudText>
+                </div>
+            </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    private List<EventoResumen> EventosHoy = new();
+    private List<dynamic> EventosHoy = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var calendarios = await DbContext.Calendarios.Include(c => c.Reglas).ThenInclude(r => r.Excepciones).ToListAsync();
-        var hoy = DateTime.Today;
-
-        foreach (var cal in calendarios)
-        {
-            if (cal.Reglas == null) continue;
-            foreach (var r in cal.Reglas)
-            {
-                // Usamos el Engine para ver si hoy toca esta regla
-                if (Engine.IsDateInCalendars(hoy.Add(r.HoraInicio), new List<CalendarioDefinition> { cal }))
-                {
-                    EventosHoy.Add(new EventoResumen
-                    {
-                        Titulo = r.Titulo,
-                        Color = cal.Color ?? "#2196F3",
-                        HoraInicio = r.HoraInicio.ToString(@"hh\:mm"),
-                        HoraFin = r.HoraFin.ToString(@"hh\:mm")
-                    });
-                }
-            }
-        }
+        await CargarEventosDeHoy();
     }
 
-    private class EventoResumen
+    private async Task CargarEventosDeHoy()
     {
-        public string Titulo { get; set; } = "";
-        public string Color { get; set; } = "";
-        public string HoraInicio { get; set; } = "";
-        public string HoraFin { get; set; } = "";
+        try
+        {
+            var hoy = DateTime.Today;
+            // Cargamos calendarios con sus reglas
+            var calendarios = await DbContext.Calendarios
+                .Include(c => c.Reglas)
+                .ToListAsync();
+
+            EventosHoy.Clear();
+
+            foreach (var cal in calendarios)
+            {
+                if (cal.Reglas == null) continue;
+
+                foreach (var r in cal.Reglas)
+                {
+                    // CORRECCIÓN DEL ERROR CS1061:
+                    // Usamos el nuevo método público 'VerificarReglaIndividual'
+                    if (Engine.VerificarReglaIndividual(hoy, r))
+                    {
+                        EventosHoy.Add(new { 
+                            Titulo = r.Titulo, 
+                            HoraInicio = r.HoraInicio.ToString(@"hh\:mm"),
+                            Color = r.Color ?? cal.Color ?? "#2196F3",
+                            Categoria = r.Categoria ?? "General",
+                            Ticks = r.HoraInicio.Ticks // Para ordenar
+                        });
+                    }
+                }
+            }
+
+            // Ordenamos por hora para que los eventos salgan cronológicamente
+            EventosHoy = EventosHoy.OrderBy(e => e.Ticks).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al cargar los eventos de hoy", Severity.Error);
+            Console.WriteLine($"Error en Home: {ex.Message}");
+        }
     }
 }

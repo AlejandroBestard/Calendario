@@ -161,17 +161,29 @@
         else CalendariosVisibles.Add(id);
     }
 
-    private List<dynamic> ObtenerEventos(DateTime f) {
-        var res = new List<dynamic>();
-        foreach (var cal in DatosCalendarios.Where(c => CalendariosVisibles.Contains(c.Id))) {
-            if (cal.Reglas == null) continue;
-            foreach (var r in cal.Reglas) {
-                if (Engine.IsDateInCalendars(f.Date.Add(r.HoraInicio), new List<CalendarioDefinition> { cal }))
-                    res.Add(new { Titulo = r.Titulo, Color = r.Color ?? cal.Color, HoraInicio = r.HoraInicio });
+    private List<dynamic> ObtenerEventos(DateTime f)
+{
+    var res = new List<dynamic>();
+    var seleccionados = DatosCalendarios.Where(c => CalendariosVisibles.Contains(c.Id));
+
+    foreach (var cal in seleccionados)
+    {
+        if (cal.Reglas == null) continue;
+        foreach (var r in cal.Reglas)
+        {
+            // USAR EL NUEVO MÉTODO DE VERIFICACIÓN INDIVIDUAL
+            if (Engine.VerificarReglaIndividual(f, r))
+            {
+                res.Add(new { 
+                    Titulo = r.Titulo, 
+                    Color = r.Color ?? cal.Color,
+                    HoraInicio = r.HoraInicio 
+                });
             }
         }
-        return res;
     }
+    return res.OrderBy(e => e.HoraInicio).ToList();
+}
 }
 
 <style>
