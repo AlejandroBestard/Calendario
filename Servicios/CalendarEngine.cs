@@ -11,34 +11,34 @@ namespace Calendario.Servicios
 {
     public class CalendarEngine
     {
-        public bool IsDateInCalendars(DateTime fecha, List<CalendarioDefinition>? calendarios)
+        public bool IsDateInCalendars(DateTime date, List<CalendarioDefinition> calendars)
+{
+    foreach (var cal in calendars)
+    {
+        if (cal.Reglas == null) continue;
+        foreach (var regla in cal.Reglas)
         {
-            if (calendarios == null) return false;
+            // 1. Verificar rango de validez
+            if (date.Date < regla.FechaInicio.Date || date.Date > regla.FechaFin.Date) continue;
 
-            foreach (var cal in calendarios)
+            // 2. Lógica por tipo de regla
+            bool aplica = regla.Tipo switch
             {
-                if (cal.Reglas == null) continue;
-                foreach (var regla in cal.Reglas)
-                {
-                    if (VerificarRegla(fecha, regla))
-                    {
-                        var eliminado = regla.Excepciones?.Any(e => e.FechaOriginal.Date == fecha.Date && e.Tipo == TipoExcepcion.Eliminar) ?? false;
-                        if (eliminado) continue;
+                TipoRegla.Puntual => date.Date == regla.FechaInicio.Date,
+                TipoRegla.Semanal => regla.DiasSemana.Contains(GetIsoDayOfWeek(date)),
+                TipoRegla.Mensual => date.Day == regla.FechaInicio.Day,
+                TipoRegla.Anual   => date.Day == regla.FechaInicio.Day && date.Month == regla.FechaInicio.Month,
+                TipoRegla.Rango   => true,
+                _ => false
+            };
 
-                        var modif = regla.Excepciones?.FirstOrDefault(e => e.FechaOriginal.Date == fecha.Date && e.Tipo == TipoExcepcion.Modificar);
-                        if (modif != null)
-                        {
-                            var hora = fecha.TimeOfDay;
-                            return hora >= (modif.NuevaHoraInicio ?? TimeSpan.Zero) && hora <= (modif.NuevaHoraFin ?? TimeSpan.Zero);
-                        }
-
-                        var horaRegla = fecha.TimeOfDay;
-                        return horaRegla >= regla.HoraInicio && horaRegla <= regla.HoraFin;
-                    }
-                }
-            }
-            return false;
+            if (aplica) return true;
         }
+    }
+    return false;
+}
+
+private int GetIsoDayOfWeek(DateTime date) => date.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)date.DayOfWeek;
 
         private bool VerificarRegla(DateTime fecha, ReglaCalendario regla)
         {

@@ -8,110 +8,213 @@
 @inject CalendarEngine Engine
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-6"><b>Calendario Mensual</b></MudText>
+    @* CABECERA CON NAVEGACIÓN Y SELECTOR DE VISTA *@
+    <MudPaper Elevation="0" Class="pa-4 mb-4 d-flex align-center justify-space-between" Style="background: #fafafa; border-radius: 16px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="IrAnterior" />
+            <MudText Typo="Typo.h5"><b>@ObtenerTituloVista()</b></MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="IrSiguiente" />
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="IrHoy" Class="ml-2">Hoy</MudButton>
+        </MudStack>
 
-    <div class="calendar-wrapper">
-        <div class="calendar-grid">
-            @foreach (var d in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" })
-            {
-                <div class="calendar-header">@d</div>
-            }
+        <MudTabs Elevation="0" Rounded="true" Color="Color.Primary" @bind-ActivePanelIndex="_vistaIndex">
+            <MudTabPanel Text="Día" Icon="@Icons.Material.Filled.ViewDay" />
+            <MudTabPanel Text="Semana" Icon="@Icons.Material.Filled.ViewWeek" />
+            <MudTabPanel Text="Mes" Icon="@Icons.Material.Filled.ViewModule" />
+            <MudTabPanel Text="Año" Icon="@Icons.Material.Filled.CalendarViewMonth" />
+        </MudTabs>
+    </MudPaper>
 
-            @{
-                var primero = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                int offset = ((int)primero.DayOfWeek + 6) % 7;
-            }
+    @* FILTROS DE CALENDARIO *@
+    <MudStack Row="true" Spacing="2" Class="mb-6 overflow-x-auto pa-2">
+        @foreach (var cal in DatosCalendarios)
+        {
+            <MudChip T="int" Text="@cal.Nombre"
+                     Variant="@(CalendariosVisibles.Contains(cal.Id) ? Variant.Filled : Variant.Outlined)"
+                     Style="@($"color: {cal.Color}; border-color: {cal.Color}; background-color: {(CalendariosVisibles.Contains(cal.Id) ? cal.Color + "22" : "transparent")}")"
+                     OnClick="@(() => ToggleCalendario(cal.Id))" />
+        }
+    </MudStack>
 
-            @for (int i = 0; i < offset; i++)
-            {
-                <div class="calendar-cell empty"></div>
-            }
-
-            @for (int dia = 1; dia <= DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month); dia++)
-            {
-                var fecha = new DateTime(DateTime.Now.Year, DateTime.Now.Month, dia);
-                var eventos = ObtenerEventos(fecha);
-
-                <div class="calendar-cell @(fecha.Date == DateTime.Today ? "today" : "")">
-                    <div class="cell-number">@dia</div>
-                    @foreach (var ev in eventos)
-                    {
-                        <div class="event-mini" style="background-color: @(ev.Color)22; border-left: 3px solid @ev.Color">
-                            @ev.Titulo
-                        </div>
-                    }
-                </div>
-            }
-        </div>
+    @* RENDERIZADO DINÁMICO *@
+    <div class="calendar-main-container">
+        @if (_vistaIndex == 0) { @RenderVistaDia() }
+        else if (_vistaIndex == 1) { @RenderVistaSemana() }
+        else if (_vistaIndex == 2) { @RenderVistaMes() }
+        else if (_vistaIndex == 3) { @RenderVistaAño() }
     </div>
 </MudContainer>
 
-<style>
-    .calendar-wrapper {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        background: white;
-    }
-
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-    }
-
-    .calendar-header {
-        padding: 10px;
-        background: #f5f5f5;
-        font-weight: bold;
-        text-align: center;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .calendar-cell {
-        min-height: 100px;
-        padding: 4px;
-        border-right: 1px solid #eee;
-        border-bottom: 1px solid #eee;
-    }
-
-    .today {
-        background-color: #fff9c4;
-    }
-
-    .cell-number {
-        font-size: 0.8rem;
-        font-weight: bold;
-        margin-bottom: 4px;
-    }
-
-    .event-mini {
-        font-size: 0.7rem;
-        padding: 2px 4px;
-        margin-bottom: 2px;
-        border-radius: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-</style>
-
 @code {
-    private List<CalendarioDefinition> Calendarios = new();
-    protected override async Task OnInitializedAsync() =>
-    Calendarios = await DbContext.Calendarios.Include(c => c.Reglas).ThenInclude(r => r.Excepciones).ToListAsync();
+    private int _vistaIndex = 2; // Por defecto Mes
+    private DateTime _fechaReferencia = DateTime.Today;
+    private List<CalendarioDefinition> DatosCalendarios = new();
+    private HashSet<int> CalendariosVisibles = new();
 
-    private List<dynamic> ObtenerEventos(DateTime f)
+    protected override async Task OnInitializedAsync()
     {
-        var res = new List<dynamic>();
-        foreach (var cal in Calendarios)
-        {
-            if (cal.Reglas == null) continue;
-            foreach (var r in cal.Reglas)
+        DatosCalendarios = await DbContext.Calendarios.Include(c => c.Reglas).ToListAsync();
+        CalendariosVisibles = new HashSet<int>(DatosCalendarios.Select(c => c.Id));
+    }
+
+    private string ObtenerTituloVista() => _vistaIndex switch {
+        0 => _fechaReferencia.ToString("dd MMMM yyyy"),
+        1 => $"Semana {_fechaReferencia.ToString("dd MMM")} - {_fechaReferencia.AddDays(6).ToString("dd MMM")}",
+        2 => _fechaReferencia.ToString("MMMM yyyy").ToUpper(),
+        3 => _fechaReferencia.Year.ToString(),
+        _ => ""
+    };
+
+    // --- RENDERIZADO DE VISTA ANUAL MEJORADO ---
+    private RenderFragment RenderVistaAño() => __builder => {
+        <div class="year-grid-large">
+            @for (int m = 1; m <= 12; m++) {
+                var mesIndex = m;
+                var primerDiaMes = new DateTime(_fechaReferencia.Year, mesIndex, 1);
+                int offset = ((int)primerDiaMes.DayOfWeek + 6) % 7; // 0=Lun, 6=Dom
+                
+                <div class="month-card-large">
+                    <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2"><b>@(primerDiaMes.ToString("MMMM"))</b></MudText>
+                    
+                    @* Cabecera de días (L, M, X...) *@
+                    <div class="mini-days-header mb-1">
+                        @foreach(var d in new[]{"L","M","X","J","V","S","D"}) { <small>@d</small> }
+                    </div>
+
+                    <div class="mini-days-grid">
+                         @* Espacios vacíos al inicio del mes *@
+                        @for(int i=0; i<offset; i++) { <div></div> }
+
+                        @* Días del mes *@
+                        @for (int d = 1; d <= DateTime.DaysInMonth(_fechaReferencia.Year, mesIndex); d++) {
+                            var f = new DateTime(_fechaReferencia.Year, mesIndex, d);
+                            @* AHORA MOSTRAMOS EL NÚMERO DENTRO DEL CÍRCULO *@
+                            <div class="day-circle @(ObtenerEventos(f).Any() ? "has-ev" : "")">@d</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    };
+
+    private RenderFragment RenderVistaDia() => __builder => {
+        <div class="day-view-container">
+            @for (int h = 0; h < 24; h++)
             {
+                var hora = TimeSpan.FromHours(h);
+                var eventos = ObtenerEventos(_fechaReferencia).Where(e => e.HoraInicio.Hours == h);
+                <div class="hour-row">
+                    <div class="hour-label">@h:00</div>
+                    <div class="hour-content">
+                        @foreach (var ev in eventos) {
+                            <div class="event-bar" style="border-left: 4px solid @ev.Color; background: @(ev.Color)15">@ev.Titulo</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    };
+
+    private RenderFragment RenderVistaMes() => __builder => {
+        <div class="calendar-grid">
+            @foreach (var d in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" }) { <div class="header">@d</div> }
+            @{
+                var primero = new DateTime(_fechaReferencia.Year, _fechaReferencia.Month, 1);
+                int offset = ((int)primero.DayOfWeek + 6) % 7;
+                int dias = DateTime.DaysInMonth(_fechaReferencia.Year, _fechaReferencia.Month);
+            }
+            @for (int i = 0; i < offset; i++) { <div class="cell empty"></div> }
+            @for (int d = 1; d <= dias; d++) {
+                var f = new DateTime(_fechaReferencia.Year, _fechaReferencia.Month, d);
+                var evs = ObtenerEventos(f);
+                <div class="cell @(f.Date == DateTime.Today ? "today" : "")">
+                    <span class="num">@d</span>
+                    @foreach (var ev in evs) { <div class="mini-ev" style="border-left: 2px solid @ev.Color">@ev.Titulo</div> }
+                </div>
+            }
+        </div>
+    };
+
+    private RenderFragment RenderVistaSemana() => __builder => {
+        <div class="calendar-grid week">
+            @for (int i = 0; i < 7; i++) {
+                var f = _fechaReferencia.AddDays(i - ((int)_fechaReferencia.DayOfWeek + 6) % 7);
+                var evs = ObtenerEventos(f);
+                <div class="cell">
+                    <div class="header">@f.ToString("ddd dd")</div>
+                    @foreach (var ev in evs) { <div class="mini-ev" style="border-left: 3px solid @ev.Color">@ev.Titulo</div> }
+                </div>
+            }
+        </div>
+    };
+
+    private void IrSiguiente() {
+        _fechaReferencia = _vistaIndex switch { 0 => _fechaReferencia.AddDays(1), 1 => _fechaReferencia.AddDays(7), 2 => _fechaReferencia.AddMonths(1), 3 => _fechaReferencia.AddYears(1), _ => _fechaReferencia };
+    }
+    private void IrAnterior() {
+        _fechaReferencia = _vistaIndex switch { 0 => _fechaReferencia.AddDays(-1), 1 => _fechaReferencia.AddDays(-7), 2 => _fechaReferencia.AddMonths(-1), 3 => _fechaReferencia.AddYears(-1), _ => _fechaReferencia };
+    }
+    private void IrHoy() => _fechaReferencia = DateTime.Today;
+
+    private void ToggleCalendario(int id) {
+        if (CalendariosVisibles.Contains(id)) CalendariosVisibles.Remove(id);
+        else CalendariosVisibles.Add(id);
+    }
+
+    private List<dynamic> ObtenerEventos(DateTime f) {
+        var res = new List<dynamic>();
+        foreach (var cal in DatosCalendarios.Where(c => CalendariosVisibles.Contains(c.Id))) {
+            if (cal.Reglas == null) continue;
+            foreach (var r in cal.Reglas) {
                 if (Engine.IsDateInCalendars(f.Date.Add(r.HoraInicio), new List<CalendarioDefinition> { cal }))
-                    res.Add(new { Titulo = r.Titulo, Color = cal.Color ?? "#2196F3" });
+                    res.Add(new { Titulo = r.Titulo, Color = r.Color ?? cal.Color, HoraInicio = r.HoraInicio });
             }
         }
         return res;
     }
 }
+
+<style>
+    /* ESTILOS GENERALES */
+    .calendar-main-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    /* ESTILOS VISTA ANUAL (MEJORADOS) */
+    .year-grid-large { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; } /* 3 columnas en vez de 4, más espacio */
+    .month-card-large { padding: 20px; border: 1px solid #e0e0e0; border-radius: 16px; background: #fafafa; }
+    .mini-days-header, .mini-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+    .mini-days-header small { color: #999; font-weight: bold; }
+    
+    /* Círculos de días más grandes y legibles */
+    .day-circle { 
+        width: 28px; height: 28px; 
+        background: white; border: 1px solid #eee; 
+        border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; color: #777;
+        margin: auto;
+    }
+    .day-circle.has-ev { 
+        background: #2196F3 !important; /* Usa el color primario o dinámico si prefieres */
+        color: white !important;
+        border-color: #2196F3 !important;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+    }
+
+    /* ESTILOS OTRAS VISTAS */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid #eee; background: white; border-radius: 8px; }
+    .calendar-grid .header { padding: 12px; background: #f5f5f5; text-align: center; font-weight: bold; border-bottom: 1px solid #eee; }
+    .calendar-grid .cell { min-height: 120px; border: 0.5px solid #f9f9f9; padding: 4px; }
+    .calendar-grid .cell.today { background: #fffde7; }
+    .mini-ev { font-size: 0.7rem; padding: 2px; margin-bottom: 2px; background: #f0f0f033; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 4px; }
+    
+    .day-view-container { background: white; border-radius: 8px; border: 1px solid #eee; }
+    .hour-row { display: flex; border-bottom: 1px solid #fafafa; min-height: 60px; } /* Filas más altas */
+    .hour-label { width: 70px; font-size: 0.8rem; color: #999; padding: 12px; border-right: 1px solid #eee; text-align: right; }
+    .hour-content { flex: 1; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .event-bar { padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; }
+
+    /* RESPONSIVE: 2 columnas en tablets, 1 en móvil */
+    media (max-width: 1200px) { .year-grid-large { grid-template-columns: repeat(2, 1fr); gap: 20px; } }
+    media (max-width: 768px) { .year-grid-large { grid-template-columns: 1fr; } }
+</style>
