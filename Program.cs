@@ -1,34 +1,61 @@
 using Calendario.Components;
-using MudBlazor.Services;
-using Microsoft.EntityFrameworkCore;
 using Calendario.Data;
 using Calendario.Servicios;
-//Jandrito Dotnet Watch!!!!!
-
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 1. CONFIGURACIÓN DE BASE DE DATOS ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? throw new InvalidOperationException("No se encontró 'DefaultConnection'.");
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// --- 2. SERVICIOS DE INTERFAZ ---
+builder.Services.AddMudServices();
+
+// --- 3. SERVICIOS LÓGICOS ---
+// ¡¡ESTA ES LA LÍNEA QUE FALTABA!! 
+// Sin esto, ClimaService no puede conectarse a internet y la app explota.
+builder.Services.AddHttpClient(); 
+
 builder.Services.AddScoped<CalendarEngine>();
+builder.Services.AddScoped<ClimaService>();
+
+// --- 4. API Y SWAGGER ---
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { 
+        Title = "Calendario API", 
+        Version = "v1",
+        Description = "API de gestión de calendarios"
+    });
+});
+
+// --- 5. BLAZOR ---
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddMudServices();
-builder.Services.AddHttpClient<FeriadosService>();
-builder.Services.AddHttpClient<ClimaService>();
-
 var app = builder.Build();
 
-// Config de s entorn
-if (!app.Environment.IsDevelopment())
+// --- 6. MIDDLEWARE ---
+
+if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+    
+    app.UseSwagger();
+    app.UseSwaggerUI(c => 
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Calendario API v1");
+        c.RoutePrefix = "swagger"; 
+    });
 }
 
 app.UseHttpsRedirection();
@@ -37,5 +64,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapControllers();
 
 app.Run();
