@@ -16,14 +16,12 @@ namespace Calendario.Servicios
         {
             try
             {
-                // Llamamos a la API pública de Nager.Date
                 var url = $"https://date.nager.at/api/v3/publicholidays/{anio}/{codigoPais}";
                 var resultado = await _http.GetFromJsonAsync<List<FeriadoDto>>(url);
                 return resultado ?? new List<FeriadoDto>();
             }
             catch (Exception)
             {
-                // Si falla (ej. sin internet), devolvemos lista vacía
                 return new List<FeriadoDto>();
             }
         }

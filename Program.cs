@@ -14,7 +14,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-
+builder.Services.AddScoped<CalendarEngine>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

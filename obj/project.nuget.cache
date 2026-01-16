@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "WhPr6iHEgno=",
+  "dgSpecHash": "RDI0U6YzVrQ=",
   "success": true,
   "projectFilePath": "E:\\Documentos\\Calendario\\Calendario.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\aleja\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
+    "C:\\Users\\aleja\\.nuget\\packages\\ical.net\\5.2.0\\ical.net.5.2.0.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.authorization\\8.0.12\\microsoft.aspnetcore.authorization.8.0.12.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.components\\8.0.12\\microsoft.aspnetcore.components.8.0.12.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.components.analyzers\\8.0.12\\microsoft.aspnetcore.components.analyzers.8.0.12.nupkg.sha512",
@@ -38,6 +39,7 @@
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.jsinterop\\8.0.12\\microsoft.jsinterop.8.0.12.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\mudblazor\\8.15.0\\mudblazor.8.15.0.nupkg.sha512",
+    "C:\\Users\\aleja\\.nuget\\packages\\nodatime\\3.2.2\\nodatime.3.2.2.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\npgsql\\8.0.0\\npgsql.8.0.0.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\8.0.0\\npgsql.entityframeworkcore.postgresql.8.0.0.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",

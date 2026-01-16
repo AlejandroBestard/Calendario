@@ -16,8 +16,7 @@ namespace Calendario.Servicios
         {
             try
             {
-                //Open meteo en teoria es free
-                //revisar VisualCrossing, Watherapi.com tambe pot funcionar millor
+
                 string latStr = lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string lonStr = lon.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
@@ -52,9 +51,7 @@ namespace Calendario.Servicios
                 return new List<DiaClima>();
             }
         }
-        // ... (Tu función ObtenerPronostico sigue aquí arriba) ...
 
-        // NUEVA FUNCIÓN: Traduce "Madrid" -> Coordenadas
         public async Task<CiudadResultado?> BuscarCiudad(string nombreCiudad)
         {
             try
@@ -72,20 +69,16 @@ namespace Calendario.Servicios
                 return null;
             }
         }
-        // ... (Tus otras funciones siguen aquí arriba) ...
 
-        // NUEVA FUNCIÓN: Traduce Coordenadas -> "Madrid, España"
         public async Task<string> ObtenerNombreUbicacion(double lat, double lon)
         {
             try
             {
-                // Usamos latitud y longitud con punto (culture invariant)
                 string latStr = lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string lonStr = lon.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
                 var url = $"https://nominatim.openstreetmap.org/reverse?format=json&lat={latStr}&lon={lonStr}";
 
-                // IMPORTANTE: Nominatim requiere un User-Agent o da error 403
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Add("User-Agent", "CalendarioApp/1.0");
 
@@ -94,7 +87,7 @@ namespace Calendario.Servicios
 
                 if (data?.Address != null)
                 {
-                    // Intentamos coger el nombre más preciso disponible
+                    // Intentar agafar el nom mes exacte
                     string ciudad = data.Address.City
                                     ?? data.Address.Town
                                     ?? data.Address.Village
