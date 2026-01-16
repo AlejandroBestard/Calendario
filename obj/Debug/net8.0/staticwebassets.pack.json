@@ -1,0 +1,41 @@
+{
+  "Files": [
+    {
+      "Id": "E:\\Documentos\\Calendario\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\Calendario.bundle.scp.css",
+      "PackagePath": "staticwebassets\\Calendario.bundle.scp.css"
+    },
+    {
+      "Id": "E:\\Documentos\\Calendario\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "E:\\Documentos\\Calendario\\wwwroot\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "E:\\Documentos\\Calendario\\wwwroot\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "E:\\Documentos\\Calendario\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.Calendario.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.Calendario.props",
+      "PackagePath": "build\\Calendario.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.Calendario.props",
+      "PackagePath": "buildMultiTargeting\\Calendario.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.Calendario.props",
+      "PackagePath": "buildTransitive\\Calendario.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

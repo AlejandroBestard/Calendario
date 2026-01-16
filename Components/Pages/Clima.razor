@@ -1,0 +1,251 @@
+@page "/clima"
+@rendermode InteractiveServer
+@using Calendario.Modelos
+@using Calendario.Servicios
+@using MudBlazor
+
+@inject ClimaService ClimaService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-6 flex-wrap gap-4">
+
+        <MudText Typo="Typo.h4" Style="white-space: nowrap;">
+            Clima en <b>@NombreCiudadActual</b> 🌦️
+        </MudText>
+
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Style="flex-grow: 1; max-width: 600px;">
+
+            <MudTooltip Text="Detectar ubicación">
+                <MudIconButton Icon="@Icons.Material.Filled.MyLocation" Color="Color.Secondary" Variant="Variant.Filled"
+                    Size="Size.Medium" OnClick="ObtenerUbicacionGPS" Class="mr-2" />
+            </MudTooltip>
+
+            <MudTextField @bind-Value="Busqueda" Label="Buscar ciudad (ej. Sevilla, París...)"
+                Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" Adornment="Adornment.End"
+                AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="BuscarManual"
+                OnKeyDown="@PresionarEnter" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="BuscarManual" Class="ml-2">
+                Buscar
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudDivider Class="mb-6" />
+
+    @if (Cargando)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="mt-10" Spacing="2">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary">Consultando satélites...</MudText>
+        </MudStack>
+    }
+    else if (Pronostico.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">
+            No se encontraron datos. Intenta buscar otra ciudad.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var dia in Pronostico)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudPaper Elevation="3" Class="pa-4 d-flex flex-column align-center gap-2 hover-card"
+                        Style="border-radius: 16px; background: linear-gradient(to bottom right, #ffffff, #f8f9fa);">
+
+                        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2">
+                            @dia.Fecha.ToString("dddd dd",
+                            System.Globalization.CultureInfo.CreateSpecificCulture("es-ES")).ToUpper()
+                </MudText>
+
+                        <MudIcon Icon="@ObtenerIcono(dia.CodigoClima)" Color="@ObtenerColor(dia.CodigoClima)"
+                            Style="font-size: 6rem; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));"
+                            Class="my-3 animate-icon" />
+
+                        <MudStack Row="true" Spacing="4" Class="mt-2" AlignItems="AlignItems.Center">
+                            <MudStack AlignItems="AlignItems.Center" Spacing="0">
+                                <MudText Color="Color.Error" Typo="Typo.h4" Style="font-weight:800;">
+                                    @Math.Round(dia.Max)°
+                                </MudText>
+                                <MudText Typo="Typo.caption">Máx</MudText>
+                            </MudStack>
+
+                            <MudDivider Vertical="true" FlexItem="true" />
+
+                            <MudStack AlignItems="AlignItems.Center" Spacing="0">
+                                <MudText Color="Color.Info" Typo="Typo.h5" Style="font-weight:600;">
+                                    @Math.Round(dia.Min)°
+                                </MudText>
+                                <MudText Typo="Typo.caption">Mín</MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        <MudChip T="string" Variant="Variant.Text" Color="@ObtenerColor(dia.CodigoClima)" Class="mt-4">
+                            @ObtenerDescripcion(dia.CodigoClima)
+                        </MudChip>
+
+                    </MudPaper>
+                </MudItem>
+                }
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .hover-card {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .hover-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .animate-icon {
+        animation: fadeInScale 0.5s ease-out;
+    }
+
+    @@keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
+
+@code {
+    List<DiaClima> Pronostico = new();
+    bool Cargando = true;
+    string Busqueda = "";
+    string NombreCiudadActual = "Cargando...";
+
+    public class CoordenadasGPS { public double lat { get; set; } public double lon { get; set; } }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ObtenerUbicacionGPS();
+    }
+
+    private async Task BuscarManual()
+    {
+        if (string.IsNullOrWhiteSpace(Busqueda)) { Snackbar.Add("Escribe una ciudad.", Severity.Warning); return; }
+
+        Cargando = true;
+        StateHasChanged();
+
+        var ciudadEncontrada = await ClimaService.BuscarCiudad(Busqueda);
+
+        if (ciudadEncontrada != null)
+        {
+            NombreCiudadActual = $"{ciudadEncontrada.Name}, {ciudadEncontrada.Country}";
+            Pronostico = await ClimaService.ObtenerPronostico(ciudadEncontrada.Latitude, ciudadEncontrada.Longitude);
+            Snackbar.Add($"Clima de {ciudadEncontrada.Name} cargado.", Severity.Success);
+            Busqueda = "";
+        }
+        else
+        {
+            Snackbar.Add($"No se encontró: '{Busqueda}'", Severity.Error);
+        }
+        Cargando = false;
+    }
+
+    private async Task ObtenerUbicacionGPS()
+    {
+        Cargando = true;
+        StateHasChanged();
+        try
+        {
+            Snackbar.Add("Obteniendo GPS...", Severity.Info);
+            var coords = await JS.InvokeAsync<CoordenadasGPS>("window.obtenerPosicionGPS");
+
+            // 1. Obtenemos el clima
+            var taskClima = ClimaService.ObtenerPronostico(coords.lat, coords.lon);
+
+            // 2. Obtenemos el nombre de la ciudad (Reverse Geocoding)
+            var taskNombre = ClimaService.ObtenerNombreUbicacion(coords.lat, coords.lon);
+
+            // Esperamos a los dos a la vez
+            await Task.WhenAll(taskClima, taskNombre);
+
+            Pronostico = taskClima.Result;
+            NombreCiudadActual = taskNombre.Result; // ¡Aquí ponemos el nombre real!
+
+            Snackbar.Add($"Estás en {NombreCiudadActual}", Severity.Success);
+        }
+        catch (Exception)
+        {
+            if (Pronostico.Count == 0)
+            {
+                NombreCiudadActual = "Madrid (Por defecto)";
+                Pronostico = await ClimaService.ObtenerPronostico(40.4168, -3.7038);
+                Snackbar.Add("GPS falló o denegado. Mostrando Madrid.", Severity.Warning);
+            }
+        }
+        Cargando = false;
+    }
+
+    private async Task PresionarEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "NumpadEnter") await BuscarManual();
+    }
+
+    // --- ICONOS Y COLORES ---
+    private string ObtenerIcono(int codigo) => codigo switch
+    {
+        0 => Icons.Material.Filled.WbSunny,
+        1 or 2 or 3 => Icons.Material.Filled.Cloud,
+        45 or 48 => Icons.Material.Filled.BlurOn,
+        51 or 53 or 55 => Icons.Material.Filled.Grain,
+        61 or 63 or 65 => Icons.Material.Filled.WaterDrop,
+        71 or 73 or 75 => Icons.Material.Filled.AcUnit,
+        80 or 81 or 82 => Icons.Material.Filled.Umbrella,
+        95 or 96 or 99 => Icons.Material.Filled.Thunderstorm,
+        _ => Icons.Material.Filled.QuestionMark
+    };
+
+    private Color ObtenerColor(int codigo) => codigo switch
+    {
+        0 => Color.Warning,
+        1 or 2 or 3 or 45 or 48 => Color.Default,
+        61 or 63 or 65 or 51 or 53 or 55 or 80 or 81 or 82 => Color.Info,
+        71 or 73 or 75 => Color.Info,
+        95 or 96 or 99 => Color.Dark,
+        _ => Color.Primary
+    };
+
+    private string ObtenerDescripcion(int codigo) => codigo switch
+    {
+        0 => "Cielo Despejado",
+        1 => "Mayormente Despejado",
+        2 => "Parcialmente Nublado",
+        3 => "Nublado",
+        45 => "Niebla",
+        48 => "Niebla con escarcha",
+        51 => "Llovizna Ligera",
+        53 => "Llovizna Moderada",
+        55 => "Llovizna Densa",
+        61 => "Lluvia Ligera",
+        63 => "Lluvia Moderada",
+        65 => "Lluvia Fuerte",
+        71 => "Nevada Ligera",
+        73 => "Nevada Moderada",
+        75 => "Nevada Fuerte",
+        80 => "Chubascos Ligeros",
+        81 => "Chubascos Moderados",
+        82 => "Chubascos Violentos",
+        95 => "Tormenta Eléctrica",
+        96 => "Tormenta con Granizo",
+        99 => "Tormenta Fuerte",
+        _ => "Clima Desconocido"
+    };
+}

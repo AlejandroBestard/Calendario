@@ -1,0 +1,163 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Calendario.Modelos
+@using Calendario.Servicios
+@using Calendario.Data
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+
+@inject ClimaService ClimaService
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+
+    <MudText Typo="Typo.h3" GutterBottom="true"><b>@ObtenerSaludo(), Usuario</b> 👋</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-6" Color="Color.Secondary">Aquí tienes el resumen de tu día.</MudText>
+
+    <MudGrid Spacing="4">
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-6 d-flex flex-column"
+                Style="height: 100%; border-radius: 20px; background: linear-gradient(135deg, #E3F2FD 0%, #FFFFFF 100%);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h5" Color="Color.Primary"><b>Clima Hoy</b></MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.CloudQueue" Color="Color.Primary" />
+                </MudStack>
+
+                @if (ClimaHoy == null)
+                {
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                }
+                else
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-4">
+                        <MudIcon Icon="@ObtenerIconoClima(ClimaHoy.CodigoClima)" Style="font-size: 5rem;"
+                            Color="Color.Warning" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h3"><b>@Math.Round(ClimaHoy.Max)°</b></MudText>
+                            <MudText Typo="Typo.body1">@NombreCiudad</MudText>
+                        </MudStack>
+                    </MudStack>
+
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mt-auto" NoIcon="true">
+                        💡 <b>Consejo:</b> @ObtenerConsejo(ClimaHoy)
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-6" Style="height: 100%; border-radius: 20px;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h5" Color="Color.Secondary"><b>Agenda de Hoy</b></MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.CalendarMonth"
+                        OnClick="@(() => NavManager.NavigateTo("/calendario"))" />
+                </MudStack>
+
+                @if (EventosHoy.Count == 0)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Class="py-4">
+                        <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Success" />
+                        <MudText Class="mt-2">¡Todo despejado! No tienes eventos hoy.</MudText>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                            OnClick="@(() => NavManager.NavigateTo("/calendario"))">
+                            Ir al Calendario
+                        </MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var evento in EventosHoy)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Primary">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText><b>@evento.Titulo</b></MudText>
+                                    <MudText Color="Color.Secondary">@evento.Inicio.ToString("HH:mm")</MudText>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                    <MudButton FullWidth="true" Variant="Variant.Text" Color="Color.Primary"
+                        OnClick="@(() => NavManager.NavigateTo("/calendario"))">
+                        Ver todos los eventos
+                    </MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+</MudContainer>
+
+@code {
+    DiaClima? ClimaHoy;
+    List<Evento> EventosHoy = new();
+    string NombreCiudad = "Cargando...";
+
+    // Clase auxiliar para recibir GPS
+    public class CoordenadasGPS { public double lat { get; set; } public double lon { get; set; } }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Cargar Eventos de la Base de Datos
+        var hoy = DateTime.Today;
+        var manana = hoy.AddDays(1);
+
+        EventosHoy = await DbContext.Eventos
+        .Where(e => e.Inicio >= hoy && e.Inicio < manana)
+        .OrderBy(e => e.Inicio)
+        .ToListAsync();
+
+        // 2. Cargar Clima (Intentar GPS, si falla Madrid)
+        try
+        {
+            var coords = await JS.InvokeAsync<CoordenadasGPS>("window.obtenerPosicionGPS");
+            var pronostico = await ClimaService.ObtenerPronostico(coords.lat, coords.lon);
+            ClimaHoy = pronostico.FirstOrDefault();
+            NombreCiudad = await ClimaService.ObtenerNombreUbicacion(coords.lat, coords.lon);
+        }
+        catch
+        {
+            // Fallback a Madrid
+            var pronostico = await ClimaService.ObtenerPronostico(40.41, -3.70);
+            ClimaHoy = pronostico.FirstOrDefault();
+            NombreCiudad = "Madrid (Por defecto)";
+        }
+    }
+
+    private string ObtenerSaludo()
+    {
+        var hora = DateTime.Now.Hour;
+        if (hora < 12) return "Buenos días";
+        if (hora < 20) return "Buenas tardes";
+        return "Buenas noches";
+    }
+
+    // --- LÓGICA DE CONSEJOS ---
+    private string ObtenerConsejo(DiaClima clima)
+    {
+        var codigo = clima.CodigoClima;
+        var temp = clima.Max;
+
+        if (codigo >= 95) return "¡Tormenta! Quédate en casa si puedes ⚡.";
+        if (codigo >= 61 || codigo == 51 || codigo == 80) return "Va a llover. No olvides el paraguas ☔.";
+        if (codigo >= 71) return "Está nevando. Abrígate mucho y cuidado al conducir ❄️.";
+
+        if (temp > 30) return "Hace mucho calor. Ropa ligera y bebe agua 🥤.";
+        if (temp > 20) return "Día perfecto. Disfruta del sol ☀️.";
+        if (temp < 10) return "Hace frío. Ponte un buen abrigo 🧥.";
+
+        return "Un día normal. Vístete cómodo.";
+    }
+
+    private string ObtenerIconoClima(int codigo) => codigo switch
+    {
+        0 => Icons.Material.Filled.WbSunny,
+        1 or 2 or 3 => Icons.Material.Filled.Cloud,
+        61 or 63 or 65 => Icons.Material.Filled.WaterDrop,
+        95 or 96 or 99 => Icons.Material.Filled.Thunderstorm,
+        _ => Icons.Material.Filled.WbCloudy
+    };
+}
