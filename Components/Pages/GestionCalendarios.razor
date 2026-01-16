@@ -22,14 +22,18 @@
         @foreach (var cal in ListaCalendarios)
         {
             <MudItem xs="12" md="6">
-                <MudPaper Elevation="4" Class="pa-4" Style="@($"border-left: 8px solid {cal.Color};")">
+                <MudPaper Elevation="4" Class="pa-4" Style="@($"border-left: 8px solid {(cal.Color ?? "#2196F3")};")">
                     <MudStack Row="true" Justify="Justify.SpaceBetween">
                         <MudText Typo="Typo.h6">@cal.Nombre</MudText>
                         <MudStack Row="true">
-                            <MudIconButton Icon="@Icons.Material.Filled.FileDownload" Color="Color.Info"
-                                OnClick="@(() => ExportarICal(cal))" Title="Exportar iCal" />
-                            <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Success"
-                                OnClick="@(() => AgregarRegla(cal))" Title="Añadir Regla" />
+                            <MudTooltip Text="Exportar iCal">
+                                <MudIconButton Icon="@Icons.Material.Filled.FileDownload" Color="Color.Info"
+                                    OnClick="@(() => ExportarICal(cal))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Añadir Regla">
+                                <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Success"
+                                    OnClick="@(() => AgregarRegla(cal))" />
+                            </MudTooltip>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
                                 OnClick="@(() => EliminarCalendario(cal))" />
                         </MudStack>
@@ -38,16 +42,22 @@
                     <MudList T="string" Dense="true">
                         @if (cal.Reglas == null || !cal.Reglas.Any())
                         {
-                            <MudText Typo="Typo.caption" Class="ml-4">Sin reglas definidas</MudText>
+                            <MudListItem>
+                                <MudText Typo="Typo.caption">Sin reglas definidas</MudText>
+                            </MudListItem>
                         }
                         else
                         {
                             @foreach (var regla in cal.Reglas)
                             {
+                                @* CORRECCIÓN: Se usa ObtenerIcono con el tipo correcto *@
                                 <MudListItem Icon="@ObtenerIcono(regla.Tipo)">
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                        <MudText>@regla.Titulo (@regla.HoraInicio.ToString(@"hh\:mm") -
-                                            @regla.HoraFin.ToString(@"hh\:mm"))</MudText>
+                                        <MudText>
+                                            <b>@regla.Titulo</b>
+                                            <small>(@regla.HoraInicio.ToString(@"hh\:mm") -
+                                                @regla.HoraFin.ToString(@"hh\:mm"))</small>
+                                        </MudText>
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                             OnClick="@(() => EditarRegla(cal, regla))" />
                                     </MudStack>
@@ -62,14 +72,11 @@
 </MudContainer>
 
 @code {
-    List<CalendarioDefinition> ListaCalendarios = new();
+    private List<CalendarioDefinition> ListaCalendarios = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarDatos();
-    }
+    protected override async Task OnInitializedAsync() => await CargarDatos();
 
-    async Task CargarDatos()
+    private async Task CargarDatos()
     {
         ListaCalendarios = await DbContext.Calendarios
         .Include(c => c.Reglas)
@@ -77,7 +84,7 @@
         .ToListAsync();
     }
 
-    async Task CrearNuevoCalendario()
+    private async Task CrearNuevoCalendario()
     {
         var nuevo = new CalendarioDefinition { Nombre = "Nuevo Calendario", Color = "#2196F3" };
         DbContext.Calendarios.Add(nuevo);
@@ -85,29 +92,31 @@
         await CargarDatos();
     }
 
-    async Task AgregarRegla(CalendarioDefinition cal)
+    private async Task AgregarRegla(CalendarioDefinition cal)
     {
-        var parametros = new DialogParameters<DialogoRegla> { { x => x.Regla, new ReglaCalendario { CalendarioId = cal.Id } } };
+        var nuevaRegla = new ReglaCalendario { CalendarioId = cal.Id, DiasSemana = new List<int>() };
+        var parametros = new DialogParameters<DialogoRegla> { { x => x.Regla, nuevaRegla } };
         var dialog = await DialogService.ShowAsync<DialogoRegla>("Nueva Regla", parametros);
         var result = await dialog.Result;
 
-        // CORRECCIÓN: Usamos '?' para validar que result no sea nulo antes de acceder a Canceled
-        if (result != null && !result.Canceled && result.Data is ReglaCalendario nuevaRegla)
+        // CORRECCIÓN: Manejo seguro de nulos para evitar avisos en la terminal
+        if (result is { Canceled: false, Data: ReglaCalendario reglaConfirmada })
         {
             if (cal.Reglas == null) cal.Reglas = new List<ReglaCalendario>();
-            cal.Reglas.Add(nuevaRegla);
+            cal.Reglas.Add(reglaConfirmada);
             await DbContext.SaveChangesAsync();
+            await CargarDatos();
             Snackbar.Add("Regla añadida", Severity.Success);
         }
     }
 
-    async Task EditarRegla(CalendarioDefinition cal, ReglaCalendario regla)
+    private async Task EditarRegla(CalendarioDefinition cal, ReglaCalendario regla)
     {
         var parametros = new DialogParameters<DialogoRegla> { { x => x.Regla, regla } };
         var dialog = await DialogService.ShowAsync<DialogoRegla>("Editar Regla", parametros);
         var result = await dialog.Result;
 
-        // CORRECCIÓN: Validación de nulo en el resultado del diálogo
+        // CORRECCIÓN: Validación de nulabilidad
         if (result != null && !result.Canceled)
         {
             await DbContext.SaveChangesAsync();
@@ -115,24 +124,26 @@
         }
     }
 
-    async Task EliminarCalendario(CalendarioDefinition cal)
+    private async Task EliminarCalendario(CalendarioDefinition cal)
     {
         DbContext.Calendarios.Remove(cal);
         await DbContext.SaveChangesAsync();
         await CargarDatos();
     }
 
-    void ExportarICal(CalendarioDefinition cal)
+    private void ExportarICal(CalendarioDefinition cal)
     {
         var ics = Engine.ExportToICal(cal);
-        Snackbar.Add("Archivo iCal generado (ver consola)", Severity.Info);
         Console.WriteLine(ics);
+        Snackbar.Add("iCal exportado a la consola", Severity.Info);
     }
 
-    string ObtenerIcono(TipoRegla tipo) => tipo switch
+    // CORRECCIÓN: Nombre del tipo corregido de 'TipoRule' a 'TipoRegla'
+    private string ObtenerIcono(TipoRegla tipo) => tipo switch
     {
         TipoRegla.Semanal => Icons.Material.Filled.Repeat,
-        TipoRegla.Rango => Icons.Material.Filled.DateRange,
+        TipoRegla.Mensual => Icons.Material.Filled.CalendarMonth,
+        TipoRegla.Anual => Icons.Material.Filled.Cake,
         _ => Icons.Material.Filled.Event
     };
 }

@@ -1,81 +1,88 @@
 @using Calendario.Modelos
-@using MudBlazor
-@inject ISnackbar Snackbar
+@using Calendario.Servicios
+@inherits MudComponentBase
 
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.EditCalendar" Class="mr-3 mb-n1" />
-            @(Regla.Id == 0 ? "Nueva Regla de Calendario" : "Editar Regla")
+            <MudIcon Icon="@Icons.Material.Filled.EventRepeat" Class="mr-3 mb-n1" />
+            Nueva Regla de Calendario
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudContainer Style="max-height: 500px; overflow-y: scroll">
-            <MudGrid>
+        <MudGrid>
+            @* TÍTULO Y CATEGORÍA *@
+            <MudItem xs="12" md="7">
+                <MudTextField @bind-Value="Regla.Titulo" Label="Nombre del evento/regla" Variant="Variant.Outlined"
+                    Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" md="5">
+                <MudSelect T="string" Label="Categoría" @bind-Value="CategoriaSeleccionada" Variant="Variant.Outlined"
+                    Margin="Margin.Dense">
+                    <MudSelectItem Value="@("Trabajo")">💼 Trabajo</MudSelectItem>
+                    <MudSelectItem Value="@("Social")">🎉 Social</MudSelectItem>
+                    <MudSelectItem Value="@("Cumpleaños")">🎂 Cumpleaños</MudSelectItem>
+                    <MudSelectItem Value="@("Deporte")">🏃 Deporte</MudSelectItem>
+                    <MudSelectItem Value="@("Personal")">🏠 Personal</MudSelectItem>
+                    <MudSelectItem Value="@("Festivo")">🎈 Festivo</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            @* SELECTOR DE COLOR *@
+            <MudItem xs="12">
+                <MudColorPicker Label="Color representativo" @bind-Text="ColorHex" Variant="Variant.Outlined"
+                    Margin="Margin.Dense" ColorPickerView="ColorPickerView.Palette" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="TipoRegla" Label="¿Cómo se repite?" @bind-Value="Regla.Tipo" Variant="Variant.Outlined"
+                    Margin="Margin.Dense">
+                    <MudSelectItem Value="TipoRegla.Puntual">Una sola vez</MudSelectItem>
+                    <MudSelectItem Value="TipoRegla.Semanal">Semanalmente (por días)</MudSelectItem>
+                    <MudSelectItem Value="TipoRegla.Mensual">Mensualmente (mismo día)</MudSelectItem>
+                    <MudSelectItem Value="TipoRegla.Anual">Anualmente (Cumpleaños/Aniversarios)</MudSelectItem>
+                    <MudSelectItem Value="TipoRegla.Rango">Rango continuo de fechas</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            @if (Regla.Tipo == TipoRegla.Semanal)
+            {
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="Regla.Titulo" Label="Título de la Regla/Evento" Required="true"
-                        Variant="Variant.Outlined" />
+                    <MudText Typo="Typo.caption" Class="ml-2">Días de la semana:</MudText>
+                    <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                        @foreach (var dia in DiasOpciones)
+                        {
+                            <MudChip T="int" Text="@dia.Value"
+                                Variant="@(Regla.DiasSemana.Contains(dia.Key) ? Variant.Filled : Variant.Outlined)"
+                                Color="@(Regla.DiasSemana.Contains(dia.Key) ? Color.Primary : Color.Default)"
+                                OnClick="@(() => ToggleDia(dia.Key))" />
+                        }
+                    </MudStack>
                 </MudItem>
+            }
 
-                <MudItem xs="12">
-                    <MudSelect T="TipoRegla" Label="Tipo de Regla" @bind-Value="Regla.Tipo" Variant="Variant.Outlined">
-                        <MudSelectItem Value="TipoRegla.Puntual">Evento Puntual (Un día)</MudSelectItem>
-                        <MudSelectItem Value="TipoRegla.Rango">Rango de Fechas (Vacaciones, etc.)</MudSelectItem>
-                        <MudSelectItem Value="TipoRegla.Semanal">Recurrencia Semanal (Horario fijo)</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                @if (Regla.Tipo == TipoRegla.Semanal)
-                {
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2">Días de la semana que aplica:</MudText>
-                        <div class="d-flex flex-wrap gap-2 mt-2">
-                            @foreach (var dia in DiasOpciones)
-                            {
-                                <MudCheckBox T="bool" Value="@Regla.DiasSemana.Contains(dia.Key)"
-                                    ValueChanged="@((bool val) => ToggleDia(dia.Key, val))" Label="@dia.Value"
-                                    Color="Color.Primary" />
-                            }
-                        </div>
-                    </MudItem>
-                }
-
+            @if (Regla.Tipo != TipoRegla.Anual)
+            {
                 <MudItem xs="6">
-                    <MudDatePicker Label="Fecha Inicio Validez" @bind-Date="FechaInicioBase"
-                        Variant="Variant.Outlined" />
+                    <MudTextField T="TimeSpan ?" Label="Hora Inicio" @bind-Value="HoraInicioTmp" InputType="InputType.Time"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudDatePicker Label="Fecha Fin Validez" @bind-Date="FechaFinBase" Variant="Variant.Outlined" />
+                    <MudTextField T="TimeSpan ?" Label="Hora Fin" @bind-Value="HoraFinTmp" InputType="InputType.Time"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
+            }
 
-                <MudItem xs="6">
-                    <MudTimePicker Label="Hora Inicio" @bind-Time="HoraInicioBase" Variant="Variant.Outlined" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MudTimePicker Label="Hora Fin" @bind-Time="HoraFinBase" Variant="Variant.Outlined" />
-                </MudItem>
-
-                @if (Regla.Id != 0)
-                {
-                    <MudItem xs="12">
-                        <MudDivider Class="my-4" />
-                        <MudText Typo="Typo.button" Color="Color.Secondary">Excepciones (Requisito 3.3)</MudText>
-                        <MudList T="string">
-                            @foreach (var exc in Regla.Excepciones)
-                            {
-                                <MudListItem
-                                    Icon="@(exc.Tipo == TipoExcepcion.Eliminar ? Icons.Material.Filled.DeleteForever : Icons.Material.Filled.Edit)">
-                                    @exc.FechaOriginal.ToShortDateString() - @(exc.Tipo == TipoExcepcion.Eliminar ? "Anulado" :
-                                    "Modificado")
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
-                                        OnClick="@(() => Regla.Excepciones.Remove(exc))" />
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudItem>
-                }
-            </MudGrid>
-        </MudContainer>
+            @* FECHAS *@
+            <MudItem xs="6">
+                <MudDatePicker Label="Fecha Inicio / Referencia" @bind-Date="FechaInicioTmp" Variant="Variant.Outlined"
+                    Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker Label="Fecha Fin (Vencimiento)" @bind-Date="FechaFinTmp" Variant="Variant.Outlined"
+                    Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
@@ -87,30 +94,51 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public ReglaCalendario Regla { get; set; } = new();
 
-    // Helpers para bindear DateTime? y TimeSpan? de MudBlazor a los tipos de nuestro modelo
-    private DateTime? FechaInicioBase { get => Regla.FechaInicio; set => Regla.FechaInicio = value ?? DateTime.Today; }
-    private DateTime? FechaFinBase { get => Regla.FechaFin; set => Regla.FechaFin = value ?? DateTime.Today; }
-    private TimeSpan? HoraInicioBase { get => Regla.HoraInicio; set => Regla.HoraInicio = value ?? TimeSpan.Zero; }
-    private TimeSpan? HoraFinBase { get => Regla.HoraFin; set => Regla.HoraFin = value ?? TimeSpan.Zero; }
+    private string CategoriaSeleccionada = "Personal";
+    private string ColorHex = "#2196F3";
 
-    private Dictionary<int, string> DiasOpciones = new()
-{
-{1, "Lun"}, {2, "Mar"}, {3, "Mie"}, {4, "Jue"}, {5, "Vie"}, {6, "Sab"}, {7, "Dom"}
+    private DateTime? FechaInicioTmp;
+    private DateTime? FechaFinTmp;
+    private TimeSpan? HoraInicioTmp;
+    private TimeSpan? HoraFinTmp;
+
+    private Dictionary<int, string> DiasOpciones = new() {
+{ 1, "L" }, { 2, "M" }, { 3, "X" }, { 4, "J" }, { 5, "V" }, { 6, "S" }, { 7, "D" }
 };
 
-    private void ToggleDia(int diaId, bool value)
+    protected override void OnInitialized()
     {
-        if (value && !Regla.DiasSemana.Contains(diaId)) Regla.DiasSemana.Add(diaId);
-        else if (!value) Regla.DiasSemana.Remove(diaId);
+        FechaInicioTmp = Regla.FechaInicio;
+        FechaFinTmp = Regla.FechaFin;
+        HoraInicioTmp = Regla.HoraInicio;
+        HoraFinTmp = Regla.HoraFin;
+
+        if (Regla.DiasSemana == null) Regla.DiasSemana = new List<int>();
+
+        // Predeterminados para reglas nuevas
+        if (Regla.Id == 0)
+        {
+            FechaInicioTmp = DateTime.Today;
+            FechaFinTmp = DateTime.Today.AddYears(5); // Por defecto validez de 5 años para recurrentes
+        }
+    }
+
+    private void ToggleDia(int diaId)
+    {
+        if (Regla.DiasSemana.Contains(diaId)) Regla.DiasSemana.Remove(diaId);
+        else Regla.DiasSemana.Add(diaId);
     }
 
     private void Submit()
     {
-        if (string.IsNullOrWhiteSpace(Regla.Titulo))
-        {
-            Snackbar.Add("El título es obligatorio", Severity.Error);
-            return;
-        }
+        Regla.FechaInicio = FechaInicioTmp ?? DateTime.Today;
+        Regla.FechaFin = FechaFinTmp ?? DateTime.Today;
+        Regla.HoraInicio = HoraInicioTmp ?? TimeSpan.Zero;
+        Regla.HoraFin = HoraFinTmp ?? TimeSpan.FromHours(1);
+
+        // Guardamos la categoría en el título o en un campo de descripción si lo tienes
+        Regla.Titulo = $"[{CategoriaSeleccionada}] {Regla.Titulo}";
+
         MudDialog.Close(DialogResult.Ok(Regla));
     }
 

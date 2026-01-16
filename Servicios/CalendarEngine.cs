@@ -11,14 +11,13 @@ namespace Calendario.Servicios
 {
     public class CalendarEngine
     {
-        public bool IsDateInCalendars(DateTime fecha, List<CalendarioDefinition> calendarios)
+        public bool IsDateInCalendars(DateTime fecha, List<CalendarioDefinition>? calendarios)
         {
             if (calendarios == null) return false;
 
             foreach (var cal in calendarios)
             {
                 if (cal.Reglas == null) continue;
-
                 foreach (var regla in cal.Reglas)
                 {
                     if (VerificarRegla(fecha, regla))
@@ -29,9 +28,8 @@ namespace Calendario.Servicios
                         var modif = regla.Excepciones?.FirstOrDefault(e => e.FechaOriginal.Date == fecha.Date && e.Tipo == TipoExcepcion.Modificar);
                         if (modif != null)
                         {
-                            var horaActual = fecha.TimeOfDay;
-                            return horaActual >= (modif.NuevaHoraInicio ?? TimeSpan.Zero) &&
-                                   horaActual <= (modif.NuevaHoraFin ?? TimeSpan.Zero);
+                            var hora = fecha.TimeOfDay;
+                            return hora >= (modif.NuevaHoraInicio ?? TimeSpan.Zero) && hora <= (modif.NuevaHoraFin ?? TimeSpan.Zero);
                         }
 
                         var horaRegla = fecha.TimeOfDay;
@@ -44,34 +42,24 @@ namespace Calendario.Servicios
 
         private bool VerificarRegla(DateTime fecha, ReglaCalendario regla)
         {
-            if (fecha.Date < regla.FechaInicio.Date || fecha.Date > regla.FechaFin.Date)
-                return false;
+            if (fecha.Date < regla.FechaInicio.Date || fecha.Date > regla.FechaFin.Date) return false;
 
             switch (regla.Tipo)
             {
-                case TipoRegla.Puntual:
-                    return fecha.Date == regla.FechaInicio.Date;
-                case TipoRegla.Rango:
-                    return true;
+                case TipoRegla.Puntual: return fecha.Date == regla.FechaInicio.Date;
+                case TipoRegla.Rango: return true;
                 case TipoRegla.Semanal:
-                    int diaSemanaHoy = (int)fecha.DayOfWeek;
-                    if (diaSemanaHoy == 0) diaSemanaHoy = 7; // Ajuste Domingo = 7
-                    return regla.DiasSemana != null && regla.DiasSemana.Contains(diaSemanaHoy);
-                default:
-                    return false;
+                    int dia = (int)fecha.DayOfWeek;
+                    if (dia == 0) dia = 7;
+                    return regla.DiasSemana?.Contains(dia) ?? false;
+                default: return false;
             }
         }
 
-        // exportacio ical
-        public string ExportToICal(CalendarioDefinition calendario)
+        public string ExportToICal(CalendarioDefinition? calendario)
         {
             var ical = new Ical.Net.Calendar();
-            var serializer = new CalendarSerializer();
-
-            if (calendario == null || calendario.Reglas == null)
-            {
-                return serializer.SerializeToString(ical) ?? string.Empty;
-            }
+            if (calendario?.Reglas == null) return new CalendarSerializer().SerializeToString(ical) ?? "";
 
             foreach (var regla in calendario.Reglas)
             {
@@ -81,59 +69,37 @@ namespace Calendario.Servicios
                     Start = new CalDateTime(regla.FechaInicio.Date.Add(regla.HoraInicio)),
                     End = new CalDateTime(regla.FechaFin.Date.Add(regla.HoraFin))
                 };
-
-                //Afegir recurrencia setmanal
-                if (regla.Tipo == TipoRegla.Semanal && regla.DiasSemana != null && regla.DiasSemana.Any())
-                {
-                    var dias = regla.DiasSemana.Select(d => (DayOfWeek)(d == 7 ? 0 : d)).ToList();
-                    vEvent.RecurrenceRules.Add(new RecurrencePattern(FrequencyType.Weekly)
-                    {
-                        ByDay = dias.Select(d => new WeekDay(d)).ToList()
-                    });
-                }
-
                 ical.Events.Add(vEvent);
             }
-
-            return serializer.SerializeToString(ical) ?? string.Empty;
+            return new CalendarSerializer().SerializeToString(ical) ?? "";
         }
 
-        // Import ical
         public List<ReglaCalendario> ImportFromICal(string content)
         {
             if (string.IsNullOrWhiteSpace(content)) return new List<ReglaCalendario>();
+            var ical = Ical.Net.Calendar.Load(content);
+            var nuevasReglas = new List<ReglaCalendario>();
 
-            try
+            if (ical?.Events == null) return nuevasReglas;
+
+            foreach (var vEvent in ical.Events)
             {
-                var ical = Ical.Net.Calendar.Load(content);
-                var nuevasReglas = new List<ReglaCalendario>();
+                if (vEvent.Start == null || vEvent.End == null) continue;
+                DateTime inicio = vEvent.Start.Value;
+                DateTime fin = vEvent.End.Value;
 
-                if (ical == null || ical.Events == null) return nuevasReglas;
-
-                foreach (var vEvent in ical.Events)
+                nuevasReglas.Add(new ReglaCalendario
                 {
-                    if (vEvent.Start == null || vEvent.End == null) continue;
-
-                    var inicio = vEvent.Start.Value;
-                    var fin = vEvent.End.Value;
-
-                    nuevasReglas.Add(new ReglaCalendario
-                    {
-                        Titulo = vEvent.Summary ?? "Evento Importado",
-                        Tipo = TipoRegla.Puntual,
-                        FechaInicio = inicio,
-                        FechaFin = fin,
-                        HoraInicio = inicio.TimeOfDay,
-                        HoraFin = fin.TimeOfDay,
-                        DiasSemana = new List<int>()
-                    });
-                }
-                return nuevasReglas;
+                    Titulo = vEvent.Summary ?? "Evento Importado",
+                    Tipo = TipoRegla.Puntual,
+                    FechaInicio = inicio,
+                    FechaFin = fin,
+                    HoraInicio = inicio.TimeOfDay,
+                    HoraFin = fin.TimeOfDay,
+                    DiasSemana = new List<int>()
+                });
             }
-            catch
-            {
-                return new List<ReglaCalendario>();
-            }
+            return nuevasReglas;
         }
     }
 }

@@ -1,464 +1,117 @@
-@page "/calendario"
+@page "/calendario-oficial"
 @rendermode InteractiveServer
-@using System.Globalization
-@using Microsoft.EntityFrameworkCore
-@using Calendario.Data
 @using Calendario.Modelos
 @using Calendario.Servicios
-@using MudBlazor
-
-@inject ISnackbar Snackbar
+@using Calendario.Data
+@using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
-@inject IDialogService DialogService
-@inject FeriadosService FeriadosApi
+@inject CalendarEngine Engine
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-6"><b>Calendario Mensual</b></MudText>
 
-    <MudStack Class="mb-4">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-
-            <MudStack Row="true" AlignItems="AlignItems.Center">
-                <MudButton Variant="Variant.Outlined" OnClick="@(() => Navegar(-1))">Anterior</MudButton>
-
-                <MudText Typo="Typo.h5" Class="mx-4" Style="min-width: 200px; text-align:center;">
-                    @ObtenerTitulo()
-                </MudText>
-
-                <MudButton Variant="Variant.Outlined" OnClick="@(() => Navegar(1))">Siguiente</MudButton>
-            </MudStack>
-
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
-                    <MudButton Variant="@(VistaActual == Vista.Mes ? Variant.Filled : Variant.Outlined)"
-                        OnClick="@(() => CambiarVista(Vista.Mes))">Mes</MudButton>
-                    <MudButton Variant="@(VistaActual == Vista.Semana ? Variant.Filled : Variant.Outlined)"
-                        OnClick="@(() => CambiarVista(Vista.Semana))">Semana</MudButton>
-                    <MudButton Variant="@(VistaActual == Vista.Dia ? Variant.Filled : Variant.Outlined)"
-                        OnClick="@(() => CambiarVista(Vista.Dia))">Día</MudButton>
-                </MudButtonGroup>
-
-                <MudTooltip Text="Ajustes">
-                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Primary"
-                        OnClick="AbrirAjustes" />
-                </MudTooltip>
-            </MudStack>
-        </MudStack>
-
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-            OnClick="@(() => Crear_Evento(null))" Style="width: fit-content;">
-            Crear Evento
-        </MudButton>
-    </MudStack>
-
-    @if (VistaActual == Vista.Mes)
-    {
-        <MudGrid Class="borde-calendario" Spacing="0">
-            @foreach (var dia in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" })
+    <div class="calendar-wrapper">
+        <div class="calendar-grid">
+            @foreach (var d in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" })
             {
-                <MudItem xs="12" Class="cabecera-dia" Style="width: 14.28%;">
-                    <MudText Align="Align.Center"><b>@dia</b></MudText>
-                </MudItem>
+                <div class="calendar-header">@d</div>
             }
-
-            @for (int i = 0; i < DiasVaciosInicio; i++)
-            {
-                <MudItem xs="12" Class="dia-vacio" Style="width: 14.28%;"></MudItem>
-            }
-
-            @for (int dia = 1; dia <= DiasEnMes; dia++)
-            {
-                int diaLocal = dia;
-                var fechaDia = new DateTime(FechaReferencia.Year, FechaReferencia.Month, diaLocal);
-                var eventos = ObtenerEventosDelDia(fechaDia);
-
-                <MudItem xs="12" Class="dia-caja pa-1" Style="width: 14.28%; min-height: 120px;">
-
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@diaLocal</MudText>
-
-                        <MudIconButton Icon="@Icons.Material.Filled.Add" Class="boton-hover-visible" Size="Size.Small"
-                            Color="Color.Primary" Variant="Variant.Text" OnClick="@(() => Crear_Evento(fechaDia))" />
-                    </MudStack>
-
-                    <div class="eventos-container">
-                        @foreach (var evento in eventos)
-                        {
-                            <MudPaper Class="pa-1 my-1 cursor-pointer hover-effect" Elevation="0"
-                                Style="@ObtenerEstiloTarjeta(evento)" @onclick="() => Editar_Evento(evento)">
-                                <MudText Typo="Typo.caption" Style="@ObtenerEstiloTexto(evento)">
-                                    @if (evento.Id != 0)
-                                    {
-                                        <b>@evento.Inicio.ToString("HH:mm")</b>
-                                    }
-                                    @evento.Titulo
-                                </MudText>
-                            </MudPaper>
-                        }
-                    </div>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-
-    else if (VistaActual == Vista.Semana)
-    {
-        <MudGrid Class="borde-calendario" Spacing="0">
-            @foreach (var fecha in DiasDeLaSemana)
-            {
-                <MudItem xs="12" Class="cabecera-dia" Style="width: 14.28%;">
-                    <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center">
-                        <MudText Align="Align.Center"><b>@fecha.ToString("ddd dd")</b></MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.AddBox" Class="boton-hover-visible" Size="Size.Small"
-                            Color="Color.Primary" Variant="Variant.Text" OnClick="@(() => Crear_Evento(fecha))" />
-                    </MudStack>
-                </MudItem>
-            }
-
-            @foreach (var fecha in DiasDeLaSemana)
-            {
-                var eventos = ObtenerEventosDelDia(fecha);
-                <MudItem xs="12" Class="dia-caja pa-1" Style="width: 14.28%; min-height: 400px;">
-                    <div class="eventos-container">
-                        @foreach (var evento in eventos)
-                        {
-                            <MudPaper Class="pa-2 my-1 cursor-pointer hover-effect" Elevation="0"
-                                Style="@ObtenerEstiloTarjeta(evento)" @onclick="() => Editar_Evento(evento)">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                    @if (evento.Id != 0)
-                                    {
-                                        <b>@evento.Inicio.ToString("HH:mm")</b>
-                                    }
-                                    <MudText Typo="Typo.body2" Style="@ObtenerEstiloTexto(evento)">
-                                        @evento.Titulo
-                                    </MudText>
-                                </MudStack>
-                            </MudPaper>
-                        }
-                    </div>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-
-    else if (VistaActual == Vista.Dia)
-    {
-        <MudPaper Elevation="0" Class="pa-4 border-solid border-1 mud-border-lines-default">
-            <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mb-4">
-                <MudText Typo="Typo.h4" Align="Align.Center">
-                    @FechaReferencia.ToString("dddd, dd MMMM yyyy", CultureInfo.CreateSpecificCulture("es-ES"))
-                </MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Size="Size.Large"
-                    OnClick="@(() => Crear_Evento(FechaReferencia))" />
-            </MudStack>
 
             @{
-                var eventosHoy = ObtenerEventosDelDia(FechaReferencia);
+                var primero = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                int offset = ((int)primero.DayOfWeek + 6) % 7;
             }
 
-            @if (eventosHoy.Count == 0)
+            @for (int i = 0; i < offset; i++)
             {
-                <MudAlert Severity="Severity.Info">No hay eventos para hoy.</MudAlert>
+                <div class="calendar-cell empty"></div>
             }
-            else
+
+            @for (int dia = 1; dia <= DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month); dia++)
             {
-                <MudStack Spacing="2">
-                    @foreach (var evento in eventosHoy)
+                var fecha = new DateTime(DateTime.Now.Year, DateTime.Now.Month, dia);
+                var eventos = ObtenerEventos(fecha);
+
+                <div class="calendar-cell @(fecha.Date == DateTime.Today ? "today" : "")">
+                    <div class="cell-number">@dia</div>
+                    @foreach (var ev in eventos)
                     {
-                        <MudPaper Class="pa-4 cursor-pointer hover-effect" Elevation="0" Style="@ObtenerEstiloTarjeta(evento)"
-                            @onclick="() => Editar_Evento(evento)">
-                            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                <MudStack>
-                                    <MudText Typo="Typo.h6" Style="@ObtenerEstiloTexto(evento)">
-                                        @evento.Titulo
-                                    </MudText>
-                                    @if (evento.Id != 0)
-                                    {
-                                        <MudText Typo="Typo.body2">
-                                            @evento.Inicio.ToString("HH:mm") - @evento.Fin.ToString("HH:mm")
-                                        </MudText>
-                                    }
-                                </MudStack>
-                                @if (evento.Id != 0)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
-                                }
-                            </MudStack>
-                        </MudPaper>
+                        <div class="event-mini" style="background-color: @(ev.Color)22; border-left: 3px solid @ev.Color">
+                            @ev.Titulo
+                        </div>
                     }
-                </MudStack>
+                </div>
             }
-        </MudPaper>
-    }
-
+        </div>
+    </div>
 </MudContainer>
 
 <style>
-    /* Estilos globales */
-    .mud-grid-item-xs-12 {
-        flex-basis: auto !important;
-        max-width: none !important;
-    }
-
-    .cabecera-dia {
-        background-color: #f5f5f5;
-        border: 1px solid #ddd;
-        padding: 5px;
-    }
-
-    .dia-vacio {
-        background-color: #fafafa;
-        border: 1px solid #eee;
-        min-height: 120px;
-    }
-
-    .dia-caja {
-        border: 1px solid #eee;
-        display: flex;
-        flex-direction: column;
+    .calendar-wrapper {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
         overflow: hidden;
+        background: white;
     }
 
-    .eventos-container {
-        overflow-y: auto;
-        flex-grow: 1;
-        padding-right: 2px;
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
     }
 
-    .eventos-container::-webkit-scrollbar {
-        width: 4px;
+    .calendar-header {
+        padding: 10px;
+        background: #f5f5f5;
+        font-weight: bold;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
     }
 
-    .eventos-container::-webkit-scrollbar-thumb {
-        background-color: #ccc;
-        border-radius: 4px;
+    .calendar-cell {
+        min-height: 100px;
+        padding: 4px;
+        border-right: 1px solid #eee;
+        border-bottom: 1px solid #eee;
     }
 
-    .cursor-pointer {
-        cursor: pointer;
+    .today {
+        background-color: #fff9c4;
     }
 
-    .hover-effect:hover {
-        filter: brightness(0.95);
+    .cell-number {
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-bottom: 4px;
     }
 
-    /* --- NUEVO CSS PARA EL EFECTO HOVER DEL BOTÓN '+' --- */
-    /* Por defecto, el botón es invisible (opacidad 0) y no captura clicks */
-    .boton-hover-visible {
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.2s ease-in-out;
-    }
-
-    /* Cuando pasas el ratón por encima de la caja del día (.dia-caja:hover),
-       el botón que está dentro se vuelve visible */
-    .dia-caja:hover .boton-hover-visible,
-    .cabecera-dia:hover .boton-hover-visible {
-        opacity: 1;
-        visibility: visible;
+    .event-mini {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+        margin-bottom: 2px;
+        border-radius: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 </style>
 
 @code {
-    public enum Vista { Mes, Semana, Dia }
-    Vista VistaActual = Vista.Mes;
+    private List<CalendarioDefinition> Calendarios = new();
+    protected override async Task OnInitializedAsync() =>
+    Calendarios = await DbContext.Calendarios.Include(c => c.Reglas).ThenInclude(r => r.Excepciones).ToListAsync();
 
-    DateTime FechaReferencia = DateTime.Now;
-
-    int DiasEnMes => DateTime.DaysInMonth(FechaReferencia.Year, FechaReferencia.Month);
-    int DiasVaciosInicio = 0;
-    string CodigoPaisSeleccionado = "ES";
-
-    List<DateTime> DiasDeLaSemana = new();
-    List<Evento> EventosCargados = new();
-
-    protected override async Task OnInitializedAsync()
+    private List<dynamic> ObtenerEventos(DateTime f)
     {
-        await CargarDatos();
-    }
-
-    private string ObtenerEstiloTarjeta(Evento e)
-    {
-        if (e.Id == 0) return "background-color:#c8e6c9; border: 1px solid #a5d6a7; color:#2e7d32;";
-        return $"background-color:{e.Color}33; border-left: 4px solid {e.Color};";
-    }
-
-    private string ObtenerEstiloTexto(Evento e)
-    {
-        if (e.Id == 0) return "font-weight:bold; color:#2e7d32;";
-        return "color:#333333; font-weight:500;";
-    }
-
-    private async Task CambiarVista(Vista nuevaVista)
-    {
-        VistaActual = nuevaVista;
-        await CargarDatos();
-    }
-
-    private string ObtenerTitulo()
-    {
-        var cultura = CultureInfo.CreateSpecificCulture("es-ES");
-        if (VistaActual == Vista.Mes) return FechaReferencia.ToString("MMMM yyyy", cultura).ToUpper();
-        if (VistaActual == Vista.Dia) return FechaReferencia.ToString("dd MMM yyyy", cultura);
-        if (VistaActual == Vista.Semana && DiasDeLaSemana.Any())
+        var res = new List<dynamic>();
+        foreach (var cal in Calendarios)
         {
-            return $"{DiasDeLaSemana.First().ToString("dd MMM")} - {DiasDeLaSemana.Last().ToString("dd MMM yyyy")}";
-        }
-        return "";
-    }
-
-    private async Task Navegar(int direccion)
-    {
-        if (VistaActual == Vista.Mes) FechaReferencia = FechaReferencia.AddMonths(direccion);
-        else if (VistaActual == Vista.Semana) FechaReferencia = FechaReferencia.AddDays(direccion * 7);
-        else if (VistaActual == Vista.Dia) FechaReferencia = FechaReferencia.AddDays(direccion);
-
-        await CargarDatos();
-    }
-
-    private List<Evento> ObtenerEventosDelDia(DateTime fecha)
-    {
-        return EventosCargados
-        .Where(e => e.Inicio.Date == fecha.Date)
-        .OrderBy(e => e.Id != 0)
-        .ThenBy(e => e.Inicio)
-        .ToList();
-    }
-
-    private async Task CargarDatos()
-    {
-        DateTime inicioRango, finRango;
-
-        if (VistaActual == Vista.Mes)
-        {
-            inicioRango = new DateTime(FechaReferencia.Year, FechaReferencia.Month, 1);
-            finRango = inicioRango.AddMonths(1);
-            int diaSemana = (int)inicioRango.DayOfWeek;
-            DiasVaciosInicio = diaSemana == 0 ? 6 : diaSemana - 1;
-        }
-        else if (VistaActual == Vista.Semana)
-        {
-            int delta = DayOfWeek.Monday - FechaReferencia.DayOfWeek;
-            if (delta > 0) delta -= 7;
-            inicioRango = FechaReferencia.AddDays(delta).Date;
-            finRango = inicioRango.AddDays(7);
-
-            DiasDeLaSemana.Clear();
-            for (int i = 0; i < 7; i++) DiasDeLaSemana.Add(inicioRango.AddDays(i));
-        }
-        else
-        {
-            inicioRango = FechaReferencia.Date;
-            finRango = inicioRango.AddDays(1);
-        }
-
-        try
-        {
-            var eventosBD = await DbContext.Eventos
-            .Where(e => e.Inicio >= inicioRango && e.Inicio < finRango)
-            .ToListAsync();
-
-            var festivosApi = await FeriadosApi.ObtenerFeriados(FechaReferencia.Year, CodigoPaisSeleccionado);
-
-            var eventosFestivos = festivosApi
-            .Where(f => f.Date >= inicioRango && f.Date < finRango)
-            .Select(f => new Evento
+            if (cal.Reglas == null) continue;
+            foreach (var r in cal.Reglas)
             {
-                Id = 0,
-                Titulo = "🎉 " + f.LocalName,
-                Inicio = f.Date,
-                Fin = f.Date
-            }).ToList();
-
-            EventosCargados = new List<Evento>();
-            EventosCargados.AddRange(eventosBD);
-            EventosCargados.AddRange(eventosFestivos);
-
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-    }
-
-    private async Task AbrirAjustes()
-    {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        var parameters = new DialogParameters { ["PaisSeleccionado"] = CodigoPaisSeleccionado };
-        var dialog = await DialogService.ShowAsync<DialogoAjustes>("Configuración", parameters, options);
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is string nuevoPais)
-        {
-            CodigoPaisSeleccionado = nuevoPais;
-            await CargarDatos();
-            Snackbar.Add($"País cambiado.", Severity.Info);
-        }
-    }
-
-    private async Task Crear_Evento(DateTime? fechaPreseleccionada)
-    {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-
-        var eventoNuevo = new Evento();
-
-        if (fechaPreseleccionada.HasValue)
-        {
-            eventoNuevo.Inicio = fechaPreseleccionada.Value.Date.AddHours(9);
-            eventoNuevo.Fin = eventoNuevo.Inicio.AddHours(1);
-        }
-        else
-        {
-            eventoNuevo.Inicio = DateTime.Now;
-            eventoNuevo.Fin = DateTime.Now.AddHours(1);
-        }
-
-        var parameters = new DialogParameters { ["ModeloEvento"] = eventoNuevo };
-
-        var dialog = await DialogService.ShowAsync<DialogoEvento>("Crear Nuevo Evento", parameters, options);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            if (result.Data is Evento eventoConfirmado)
-            {
-                DbContext.Eventos.Add(eventoConfirmado);
-                await DbContext.SaveChangesAsync();
-                await CargarDatos();
-                Snackbar.Add("Evento creado.", Severity.Success);
+                if (Engine.IsDateInCalendars(f.Date.Add(r.HoraInicio), new List<CalendarioDefinition> { cal }))
+                    res.Add(new { Titulo = r.Titulo, Color = cal.Color ?? "#2196F3" });
             }
         }
-    }
-
-    private async Task Editar_Evento(Evento evento)
-    {
-        if (evento.Id == 0) { Snackbar.Add("Festivo no editable.", Severity.Info); return; }
-
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        var parameters = new DialogParameters { ["ModeloEvento"] = evento };
-        var dialog = await DialogService.ShowAsync<DialogoEvento>("Editar Evento", parameters, options);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            if (result.Data is string texto && texto == "ELIMINAR")
-            {
-                if (await DialogService.ShowMessageBox("Borrar", "¿Seguro?", yesText: "Si", cancelText: "No") == true)
-                {
-                    DbContext.Eventos.Remove(evento);
-                    await DbContext.SaveChangesAsync();
-                    Snackbar.Add("Eliminado.", Severity.Error);
-                }
-            }
-            else
-            {
-                if (result.Data is Evento editado)
-                {
-                    DbContext.Eventos.Update(editado);
-                    await DbContext.SaveChangesAsync();
-                    Snackbar.Add("Actualizado.", Severity.Success);
-                }
-            }
-            await CargarDatos();
-        }
+        return res;
     }
 }

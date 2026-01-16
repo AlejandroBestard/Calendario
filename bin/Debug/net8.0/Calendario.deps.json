@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v8.0": {
       "Calendario/1.0.0": {
         "dependencies": {
+          "Ical.Net": "5.2.0",
           "Microsoft.EntityFrameworkCore.Tools": "8.0.0",
           "MudBlazor": "8.15.0",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.0"
@@ -21,6 +22,17 @@
           "lib/net6.0/Humanizer.dll": {
             "assemblyVersion": "2.14.0.0",
             "fileVersion": "2.14.1.48190"
+          }
+        }
+      },
+      "Ical.Net/5.2.0": {
+        "dependencies": {
+          "NodaTime": "3.2.2"
+        },
+        "runtime": {
+          "lib/net8.0/Ical.Net.dll": {
+            "assemblyVersion": "5.0.0.0",
+            "fileVersion": "5.2.0.0"
           }
         }
       },
@@ -504,6 +516,14 @@
           }
         }
       },
+      "NodaTime/3.2.2": {
+        "runtime": {
+          "lib/net8.0/NodaTime.dll": {
+            "assemblyVersion": "3.2.2.0",
+            "fileVersion": "3.2.2.0"
+          }
+        }
+      },
       "Npgsql/8.0.0": {
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "8.0.2"
@@ -635,6 +655,13 @@
       "sha512": "sha512-lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==",
       "path": "humanizer.core/2.14.1",
       "hashPath": "humanizer.core.2.14.1.nupkg.sha512"
+    },
+    "Ical.Net/5.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-19UKfqV87yewhwGrSqiySwqcY7//R6VQmDaer/Qe3bWqyR9JP8A1jtb2j7JhKCFP4ycQmO0ZaWIEasIjZdwF4Q==",
+      "path": "ical.net/5.2.0",
+      "hashPath": "ical.net.5.2.0.nupkg.sha512"
     },
     "Microsoft.AspNetCore.Authorization/8.0.12": {
       "type": "package",
@@ -866,6 +893,13 @@
       "sha512": "sha512-iOJEnQ6tYGQPfPJaUazyC8H6pcczgaMX7vhUzrJPpB0WqEXNozwMfSzoOe2/JZmVWJcUfYZgKBeBU2Z27XY7Sw==",
       "path": "mudblazor/8.15.0",
       "hashPath": "mudblazor.8.15.0.nupkg.sha512"
+    },
+    "NodaTime/3.2.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-dmju5W0UYC3QP/UJM0juKAZkH0HSDMp0gH91A0+mT9M0kgyM2Jm67hUZPl/WRQLq8Lijjqmdk8kyAViWFWM7dA==",
+      "path": "nodatime/3.2.2",
+      "hashPath": "nodatime.3.2.2.nupkg.sha512"
     },
     "Npgsql/8.0.0": {
       "type": "package",

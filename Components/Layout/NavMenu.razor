@@ -1,15 +1,14 @@
 ﻿@using MudBlazor
 
-<MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
-        Portada
-    </MudNavLink>
 
-    <MudNavLink Href="/calendario" Icon="@Icons.Material.Filled.CalendarMonth">
-        Calendario
-    </MudNavLink>
+<MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+    Inicio (Hoy)
+</MudNavLink>
 
-    <MudNavLink Href="/clima" Icon="@Icons.Material.Filled.WbSunny">
-        El Tiempo
-    </MudNavLink>
-</MudNavMenu>
+<MudNavLink Href="/calendario-oficial" Icon="@Icons.Material.Filled.CalendarMonth">
+    Calendario Mensual
+</MudNavLink>
+
+<MudNavLink Href="/gestion-calendarios" Icon="@Icons.Material.Filled.Settings">
+    Administrar Reglas
+</MudNavLink>
