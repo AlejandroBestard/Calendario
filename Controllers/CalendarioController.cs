@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Calendario.Data;
+using Calendario.Modelos;
 using Calendario.Servicios;
+using System.Text;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -31,10 +34,11 @@ public class CalendarioController : ControllerBase
             .Select(r => new { r.Titulo, r.HoraInicio, r.Color, r.Categoria })
             .ToList();
 
-        return Ok(new { 
-            fecha = fecha.ToShortDateString(), 
+        return Ok(new
+        {
+            fecha = fecha.ToShortDateString(),
             tieneEventos = eventos.Any(),
-            eventos = eventos 
+            eventos = eventos
         });
     }
 
@@ -45,7 +49,7 @@ public class CalendarioController : ControllerBase
         var calendario = await _db.Calendarios.Include(c => c.Reglas).FirstOrDefaultAsync(c => c.Id == id);
         if (calendario == null) return NotFound();
 
-        var ics = _engine.ExportToICal(calendario);
+        var ics = _engine.ExportToICal(calendario.Reglas);
         return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", $"{calendario.Nombre}.ics");
     }
 }

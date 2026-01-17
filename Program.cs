@@ -8,19 +8,23 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. CONFIGURACIÓN DE BASE DE DATOS ---
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("No se encontró 'DefaultConnection'.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+// En Program.cs, cerca de donde añades otros servicios
+builder.Services.AddScoped<Calendario.Servicios.CalendarEngine>();
 
 // --- 2. SERVICIOS DE INTERFAZ ---
 builder.Services.AddMudServices();
 
+builder.Services.AddScoped<Calendario.Servicios.CalendarComponentService>();
+
 // --- 3. SERVICIOS LÓGICOS ---
 // ¡¡ESTA ES LA LÍNEA QUE FALTABA!! 
 // Sin esto, ClimaService no puede conectarse a internet y la app explota.
-builder.Services.AddHttpClient(); 
+builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<CalendarEngine>();
 builder.Services.AddScoped<ClimaService>();
@@ -30,8 +34,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { 
-        Title = "Calendario API", 
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Calendario API",
         Version = "v1",
         Description = "API de gestión de calendarios"
     });
@@ -49,12 +54,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
-    
+
     app.UseSwagger();
-    app.UseSwaggerUI(c => 
+    app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Calendario API v1");
-        c.RoutePrefix = "swagger"; 
+        c.RoutePrefix = "swagger";
     });
 }
 

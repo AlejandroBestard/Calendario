@@ -18,13 +18,15 @@
     <MudPaper Class="pa-4 mb-4 d-flex gap-4 align-center" Elevation="2">
         <MudFileUpload T="IBrowserFile" FilesChanged="ImportarCalendario" Accept=".ics">
             <ActivatorContent>
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.UploadFile">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                    StartIcon="@Icons.Material.Filled.UploadFile">
                     Importar .ICS
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
         <MudSpacer />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CrearNuevoCalendario">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="CrearNuevoCalendario">
             Nuevo Calendario
         </MudButton>
     </MudPaper>
@@ -38,18 +40,21 @@
                     {
                         foreach (var cal in calendarios)
                         {
-                            <MudListItem OnClick="@(() => SeleccionarCalendario(cal))" 
-                                         Class="@(CalendarioSeleccionado?.Id == cal.Id ? "mud-theme-primary lighten-4" : "")">
+                            <MudListItem OnClick="@(() => SeleccionarCalendario(cal))"
+                                Class="@(CalendarioSeleccionado?.Id == cal.Id ? "mud-theme-primary lighten-4" : "")">
                                 <div class="d-flex justify-space-between align-center">
                                     <MudText>@cal.Nombre</MudText>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => EliminarCalendario(cal))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                        OnClick="@(() => EliminarCalendario(cal))" />
                                 </div>
                             </MudListItem>
                         }
                     }
                     else
                     {
-                        <MudListItem><MudText Typo="Typo.body2" Color="Color.Default">No hay calendarios.</MudText></MudListItem>
+                        <MudListItem>
+                            <MudText Typo="Typo.body2" Color="Color.Default">No hay calendarios.</MudText>
+                        </MudListItem>
                     }
                 </MudList>
             </MudPaper>
@@ -59,33 +64,51 @@
             @if (CalendarioSeleccionado != null)
             {
                 <MudPaper Class="pa-4" Elevation="2">
-                    
+
                     <MudGrid Class="mb-4 align-center">
                         <MudItem xs="8">
-                            <MudTextField @bind-Value="CalendarioSeleccionado.Nombre" Label="Nombre del Calendario" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudTextField @bind-Value="CalendarioSeleccionado.Nombre" Label="Nombre del Calendario"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudItem>
                         <MudItem xs="4">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="GuardarCambiosCalendario">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                OnClick="GuardarCambiosCalendario">
                                 Actualizar
                             </MudButton>
                         </MudItem>
                     </MudGrid>
-                    
+
                     <MudDivider Class="my-4" />
 
                     <MudCard Class="mb-4 pa-4" Elevation="0" Outlined="true" Style="background-color: #fafafa;">
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">➕ Añadir Nuevo Evento</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                            @(NuevaRegla.Id == 0 ? "➕ Añadir Nuevo Evento" : "✏️ Editando Evento")
+                        </MudText>
+
                         <MudGrid>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="NuevaRegla.Titulo" Label="Título" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            
-                            <MudItem xs="12" sm="6">
-                                <MudDatePicker Label="Fecha Inicio" @bind-Date="dateStart" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="NuevaRegla.Titulo" Label="Título del Evento"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
-                                <MudSelect @bind-Value="NuevaRegla.Categoria" Label="Categoría" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                <MudDatePicker Label="Fecha" @bind-Date="dateStart" Variant="Variant.Outlined"
+                                    Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="TimeSpan ?" Label="Hora Inicio" @bind-Value="timeStart"
+                                    InputType="InputType.Time" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="TimeSpan ?" Label="Hora Fin" @bind-Value="timeEnd"
+                                    InputType="InputType.Time" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" sm="4">
+                                <MudSelect @bind-Value="NuevaRegla.Categoria" Label="Categoría" Variant="Variant.Outlined"
+                                    Margin="Margin.Dense">
                                     <MudSelectItem Value="@("General")">General</MudSelectItem>
                                     <MudSelectItem Value="@("Social")">Social 🥂</MudSelectItem>
                                     <MudSelectItem Value="@("Trabajo")">Trabajo 💼</MudSelectItem>
@@ -95,25 +118,32 @@
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
-                                <MudColorPicker Label="Color" 
-                                                @bind-Text="NuevaRegla.Color" 
-                                                Style="width:100%;" 
-                                                ShowAlpha="false" 
-                                                ColorPickerView="ColorPickerView.Palette" />
+                                <MudColorPicker Label="Color" @bind-Text="NuevaRegla.Color" Style="width:100%;"
+                                    ShowAlpha="false" ColorPickerView="ColorPickerView.Palette" />
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
-                                <MudSelect @bind-Value="NuevaRegla.Tipo" Label="Repetición" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                <MudSelect @bind-Value="NuevaRegla.Tipo" Label="Repetición" Variant="Variant.Outlined"
+                                    Margin="Margin.Dense">
                                     <MudSelectItem Value="TipoRegla.Puntual">Una vez</MudSelectItem>
+                                    <MudSelectItem Value="TipoRegla.LunesViernes">Lunes a Viernes 💼</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Semanal">Semanal</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Mensual">Mensual</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Anual">Anual</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
 
-                            <MudItem xs="12" Class="d-flex justify-end">
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="GuardarRegla" StartIcon="@Icons.Material.Filled.Save">
-                                    Guardar Evento
+                            <MudItem xs="12" Class="d-flex justify-end gap-2">
+                                @if (NuevaRegla.Id != 0)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ResetFormulario">
+                                        Cancelar Edición
+                                    </MudButton>
+                                }
+
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="GuardarRegla"
+                                    StartIcon="@Icons.Material.Filled.Save">
+                                    @(NuevaRegla.Id == 0 ? "Crear Evento" : "Guardar Cambios")
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -123,30 +153,42 @@
                         <HeaderContent>
                             <MudTh>Color</MudTh>
                             <MudTh>Evento</MudTh>
+                            <MudTh>Horario</MudTh>
                             <MudTh>Tipo</MudTh>
-                            <MudTh>Fecha</MudTh>
-                            <MudTh>Acción</MudTh>
+                            <MudTh>Acciones</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>
-                                <MudIcon Icon="@Icons.Material.Filled.Circle" Style="@($"color:{context.Color ?? "#9E9E9E"};")" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                    Style="@($"color:{context.Color ?? "#9E9E9E"};")" Size="Size.Small" />
                             </MudTd>
-                            <MudTd>@context.Titulo</MudTd>
-                            <MudTd>@context.Tipo</MudTd>
-                            <MudTd>@context.FechaInicio.ToShortDateString()</MudTd>
                             <MudTd>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => EliminarRegla(context))" />
+                                <MudText Typo="Typo.body2">@context.Titulo</MudText>
+                                <MudText Typo="Typo.caption">@context.Categoria</MudText>
+                            </MudTd>
+                            <MudTd>
+                                @context.FechaInicio.ToString("dd/MM") <br />
+                                <b>@context.FechaInicio.ToString("HH:mm") - @(context.FechaFin.HasValue ?
+                                                                context.FechaFin.Value.ToString("HH:mm") : "...")</b>
+                            </MudTd>
+                            <MudTd>@context.Tipo</MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                    OnClick="@(() => CargarParaEditar(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                    OnClick="@(() => EliminarRegla(context))" />
                             </MudTd>
                         </RowTemplate>
                         <NoRecordsContent>
-                            <MudText Class="pa-4">No hay eventos. ¡Añade uno arriba!</MudText>
+                            <MudText Class="pa-4">No hay eventos. ¡Añade uno!</MudText>
                         </NoRecordsContent>
                     </MudTable>
                 </MudPaper>
             }
             else
             {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Selecciona un calendario para empezar.</MudAlert>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Selecciona un calendario para empezar.
+                </MudAlert>
             }
         </MudItem>
     </MudGrid>
@@ -155,9 +197,13 @@
 @code {
     private List<CalendarioDefinition> calendarios = new();
     private CalendarioDefinition? CalendarioSeleccionado;
-    
+
     private ReglaCalendario NuevaRegla = new() { Categoria = "General", Color = "#2196F3" };
+
     private DateTime? dateStart = DateTime.Today;
+    private TimeSpan? timeStart = new TimeSpan(9, 0, 0);
+    // CAMBIO: Variable para hora fin
+    private TimeSpan? timeEnd = new TimeSpan(10, 0, 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,10 +213,10 @@
     private async Task CargarDatos()
     {
         calendarios = await DbContext.Calendarios
-            .Include(c => c.Reglas)
-            .OrderBy(c => c.Id)
-            .ToListAsync();
-            
+        .Include(c => c.Reglas)
+        .OrderBy(c => c.Id)
+        .ToListAsync();
+
         if (CalendarioSeleccionado != null)
         {
             CalendarioSeleccionado = calendarios.FirstOrDefault(c => c.Id == CalendarioSeleccionado.Id);
@@ -179,67 +225,138 @@
 
     private async Task CrearNuevoCalendario()
     {
-        try {
-            var nuevo = new CalendarioDefinition { Nombre = "Nuevo Calendario", Color = "#2196F3", Reglas = new List<ReglaCalendario>() };
+        try
+        {
+            var nuevo = new CalendarioDefinition
+            {
+                Nombre = "Nuevo Calendario",
+                Color = "#2196F3",
+                Reglas = new
+            List<ReglaCalendario>()
+            };
             DbContext.Calendarios.Add(nuevo);
             await DbContext.SaveChangesAsync();
             await CargarDatos();
             SeleccionarCalendario(calendarios.Last());
             Snackbar.Add("Calendario creado", Severity.Success);
-        } catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
     }
 
     private void SeleccionarCalendario(CalendarioDefinition cal)
     {
         CalendarioSeleccionado = cal;
+        ResetFormulario();
+    }
+
+    private void ResetFormulario()
+    {
         NuevaRegla = new ReglaCalendario { Categoria = "General", Color = "#2196F3" };
         dateStart = DateTime.Today;
+        timeStart = new TimeSpan(9, 0, 0);
+        timeEnd = new TimeSpan(10, 0, 0); // Reset hora fin
+    }
+
+    // CAMBIO: Método para cargar un evento existente en el formulario
+    private void CargarParaEditar(ReglaCalendario regla)
+    {
+        // Clonamos visualmente para no afectar la tabla hasta guardar (opcional, aquí referenciamos directo para simplicidad)
+        NuevaRegla = regla;
+
+        // Descomponemos las fechas para rellenar los inputs
+        dateStart = regla.FechaInicio.Date; // Asumimos fecha local para editar
+        timeStart = regla.FechaInicio.TimeOfDay;
+
+        if (regla.FechaFin.HasValue)
+        {
+            timeEnd = regla.FechaFin.Value.TimeOfDay;
+        }
+        else
+        {
+            timeEnd = timeStart.Value.Add(TimeSpan.FromHours(1));
+        }
     }
 
     private async Task GuardarCambiosCalendario()
     {
         if (CalendarioSeleccionado == null) return;
-        try {
+        try
+        {
             DbContext.Calendarios.Update(CalendarioSeleccionado);
             await DbContext.SaveChangesAsync();
             Snackbar.Add("Nombre actualizado", Severity.Success);
-        } catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
     }
 
     private async Task GuardarRegla()
     {
-        if (CalendarioSeleccionado == null || string.IsNullOrWhiteSpace(NuevaRegla.Titulo)) {
+        if (CalendarioSeleccionado == null || string.IsNullOrWhiteSpace(NuevaRegla.Titulo))
+        {
             Snackbar.Add("El título es obligatorio", Severity.Warning);
             return;
         }
 
-        try {
-            var fechaSegura = DateTime.SpecifyKind(dateStart ?? DateTime.Today, DateTimeKind.Utc);
-            NuevaRegla.FechaInicio = fechaSegura;
-            NuevaRegla.FechaFin = fechaSegura;
-            NuevaRegla.CalendarioId = CalendarioSeleccionado.Id; 
-            
+        try
+        {
+            // CAMBIO: Lógica de Hora Inicio y Hora Fin
+            var fechaBase = dateStart ?? DateTime.Today;
+            var tInicio = timeStart ?? TimeSpan.Zero;
+            var tFin = timeEnd ?? tInicio.Add(TimeSpan.FromHours(1)); // Si no pone fin, +1 hora
+
+            // Validar que fin sea mayor que inicio (si es el mismo día)
+            if (tFin <= tInicio)
+            {
+                Snackbar.Add("La hora de fin debe ser posterior a la de inicio", Severity.Warning);
+                return;
+            }
+
+            // Construir DateTime completos
+            var dtInicio = fechaBase.Date.Add(tInicio);
+            var dtFin = fechaBase.Date.Add(tFin);
+
+            // Asignar en UTC
+            NuevaRegla.FechaInicio = DateTime.SpecifyKind(dtInicio, DateTimeKind.Utc);
+            NuevaRegla.FechaFin = DateTime.SpecifyKind(dtFin, DateTimeKind.Utc);
+
+            NuevaRegla.CalendarioId = CalendarioSeleccionado.Id;
             if (string.IsNullOrEmpty(NuevaRegla.Color)) NuevaRegla.Color = "#2196F3";
 
             if (CalendarioSeleccionado.Reglas == null) CalendarioSeleccionado.Reglas = new List<ReglaCalendario>();
-            
-            CalendarioSeleccionado.Reglas.Add(NuevaRegla);
-            DbContext.Reglas.Add(NuevaRegla);
+
+            // CAMBIO: Lógica Crear vs Editar
+            if (NuevaRegla.Id == 0)
+            {
+                // Es NUEVO
+                CalendarioSeleccionado.Reglas.Add(NuevaRegla);
+                DbContext.Reglas.Add(NuevaRegla);
+                Snackbar.Add("Evento creado", Severity.Success);
+            }
+            else
+            {
+                // Es EDICIÓN (Entity Framework ya trackea el objeto porque lo cargamos del contexto)
+                DbContext.Reglas.Update(NuevaRegla);
+                Snackbar.Add("Evento actualizado", Severity.Success);
+            }
+
             await DbContext.SaveChangesAsync();
-            
-            Snackbar.Add("Evento guardado", Severity.Success);
-            
-            NuevaRegla = new ReglaCalendario { Categoria = "General", Color = "#2196F3" };
+            ResetFormulario();
             await CargarDatos();
-        } catch (Exception ex) { 
-            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error); 
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
         }
     }
 
+    // ... (El resto de métodos EliminarCalendario, EliminarRegla, ImportarCalendario siguen igual) ...
     private async Task EliminarCalendario(CalendarioDefinition cal)
     {
-        bool? result = await DialogService.ShowMessageBox("Confirmar", "¿Borrar calendario?", yesText:"Borrar", cancelText:"Cancelar");
-        if (result == true) {
+        bool? result = await DialogService.ShowMessageBox("Confirmar", "¿Borrar calendario?", yesText: "Borrar",
+        cancelText: "Cancelar");
+        if (result == true)
+        {
             DbContext.Calendarios.Remove(cal);
             await DbContext.SaveChangesAsync();
             await CargarDatos();
@@ -250,29 +367,37 @@
 
     private async Task EliminarRegla(ReglaCalendario regla)
     {
+        // Si estamos editando justo la regla que borramos, limpiar formulario
+        if (NuevaRegla.Id == regla.Id) ResetFormulario();
+
         DbContext.Reglas.Remove(regla);
         await DbContext.SaveChangesAsync();
-        await CargarDatos(); 
+        await CargarDatos();
         Snackbar.Add("Evento eliminado", Severity.Success);
     }
 
     private async Task ImportarCalendario(IBrowserFile file)
     {
         if (file == null) return;
-        try 
+        try
         {
             using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
             using var reader = new StreamReader(stream);
             var contenido = await reader.ReadToEndAsync();
             var reglasImportadas = Engine.ParsearIcal(contenido);
-            
+
             if (!reglasImportadas.Any()) { Snackbar.Add("Sin eventos", Severity.Warning); return; }
 
-            foreach(var r in reglasImportadas) {
-                r.Categoria = "Importado"; 
+            foreach (var r in reglasImportadas)
+            {
+                r.Categoria = "Importado";
                 r.Color = "#FF9800";
                 r.FechaInicio = DateTime.SpecifyKind(r.FechaInicio, DateTimeKind.Utc);
-                r.FechaFin = DateTime.SpecifyKind(r.FechaFin, DateTimeKind.Utc);
+                if (r.FechaFin.HasValue)
+                    r.FechaFin = DateTime.SpecifyKind(r.FechaFin.Value, DateTimeKind.Utc);
+                else
+                    r.FechaFin = DateTime.SpecifyKind(r.FechaInicio, DateTimeKind.Utc);
+
                 if (r.Titulo.Length > 50) r.Titulo = r.Titulo.Substring(0, 50);
             }
             var nuevoCal = new CalendarioDefinition { Nombre = $"Imp: {file.Name}", Color = "#FF9800", Reglas = reglasImportadas };
@@ -280,6 +405,7 @@
             await DbContext.SaveChangesAsync();
             await CargarDatos();
             Snackbar.Add($"Importado correctamente", Severity.Success);
-        } catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
     }
 }

@@ -35,7 +35,10 @@ namespace Calendario.Modelos
 
         // Rango de validez
         public DateTime FechaInicio { get; set; } = DateTime.Today;
-        public DateTime FechaFin { get; set; } = DateTime.Today.AddYears(1);
+
+        // --- CORRECCIÓN AQUÍ: AÑADIDO EL '?' PARA QUE SEA NULLABLE ---
+        public DateTime? FechaFin { get; set; }
+        // -------------------------------------------------------------
 
         // Horario
         public TimeSpan HoraInicio { get; set; }
@@ -66,10 +69,11 @@ namespace Calendario.Modelos
     public enum TipoRegla
     {
         Puntual,
-        Rango,
+        Rango,    // Asegúrate de que tu Engine sepa qué hacer con este si lo usas
         Semanal,
         Mensual,
-        Anual
+        Anual,
+        LunesViernes
     }
 
     public enum TipoExcepcion

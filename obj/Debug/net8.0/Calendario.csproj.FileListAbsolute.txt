@@ -243,3 +243,8 @@ C:\Users\aleja\Documents\Calendario\obj\Debug\net8.0\refint\Calendario.dll
 C:\Users\aleja\Documents\Calendario\obj\Debug\net8.0\Calendario.pdb
 C:\Users\aleja\Documents\Calendario\obj\Debug\net8.0\Calendario.genruntimeconfig.cache
 C:\Users\aleja\Documents\Calendario\obj\Debug\net8.0\ref\Calendario.dll
+E:\Documentos\Calendario\bin\Debug\net8.0\Microsoft.OpenApi.dll
+E:\Documentos\Calendario\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
+E:\Documentos\Calendario\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+E:\Documentos\Calendario\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+E:\Documentos\Calendario\obj\Debug\net8.0\Calendario.MvcApplicationPartsAssemblyInfo.cs
