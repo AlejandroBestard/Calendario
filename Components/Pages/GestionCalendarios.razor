@@ -5,10 +5,12 @@
 @using Calendario.Data
 @using Calendario.Servicios
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext DbContext
+@inject AplicacionContextoDB DbContext
 @inject ISnackbar Snackbar
-@inject CalendarEngine Engine
+@inject MotorCalendario Engine
+@inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject FestivosService FestivosService
 
 <PageTitle>Gestión de Calendarios</PageTitle>
 
@@ -24,6 +26,10 @@
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.EventNote"
+            OnClick="ImportarFestivos">
+            Importar Festivos
+        </MudButton>
         <MudSpacer />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
             OnClick="CrearNuevoCalendario">
@@ -31,10 +37,11 @@
         </MudButton>
     </MudPaper>
 
+
     <MudGrid>
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-0" Elevation="2">
-                <MudList T="CalendarioDefinition">
+                <MudList T="DefinicionCalendario">
                     <MudListSubheader><b>Mis Calendarios</b></MudListSubheader>
                     @if (calendarios.Any())
                     {
@@ -44,8 +51,12 @@
                                 Class="@(CalendarioSeleccionado?.Id == cal.Id ? "mud-theme-primary lighten-4" : "")">
                                 <div class="d-flex justify-space-between align-center">
                                     <MudText>@cal.Nombre</MudText>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                        OnClick="@(() => EliminarCalendario(cal))" />
+                                    <div class="d-flex gap-1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small"
+                                            Color="Color.Info" OnClick="@((e) => ExportarCalendario(cal, e))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                            Color="Color.Error" OnClick="@(() => EliminarCalendario(cal))" />
+                                    </div>
                                 </div>
                             </MudListItem>
                         }
@@ -192,17 +203,18 @@
             }
         </MudItem>
     </MudGrid>
+
 </MudContainer>
 
 @code {
-    private List<CalendarioDefinition> calendarios = new();
-    private CalendarioDefinition? CalendarioSeleccionado;
+    private List<DefinicionCalendario> calendarios = new();
+    private DefinicionCalendario? CalendarioSeleccionado;
 
     private ReglaCalendario NuevaRegla = new() { Categoria = "General", Color = "#2196F3" };
 
     private DateTime? dateStart = DateTime.Today;
     private TimeSpan? timeStart = new TimeSpan(9, 0, 0);
-    // CAMBIO: Variable para hora fin
+    // Cmbi variable hora fi
     private TimeSpan? timeEnd = new TimeSpan(10, 0, 0);
 
     protected override async Task OnInitializedAsync()
@@ -227,7 +239,7 @@
     {
         try
         {
-            var nuevo = new CalendarioDefinition
+            var nuevo = new DefinicionCalendario
             {
                 Nombre = "Nuevo Calendario",
                 Color = "#2196F3",
@@ -243,7 +255,7 @@
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
     }
 
-    private void SeleccionarCalendario(CalendarioDefinition cal)
+    private void SeleccionarCalendario(DefinicionCalendario cal)
     {
         CalendarioSeleccionado = cal;
         ResetFormulario();
@@ -257,14 +269,12 @@
         timeEnd = new TimeSpan(10, 0, 0); // Reset hora fin
     }
 
-    // CAMBIO: Método para cargar un evento existente en el formulario
+    // Metode per agregar un calendari existent
     private void CargarParaEditar(ReglaCalendario regla)
     {
-        // Clonamos visualmente para no afectar la tabla hasta guardar (opcional, aquí referenciamos directo para simplicidad)
         NuevaRegla = regla;
 
-        // Descomponemos las fechas para rellenar los inputs
-        dateStart = regla.FechaInicio.Date; // Asumimos fecha local para editar
+        dateStart = regla.FechaInicio.Date; // Agafar hora local
         timeStart = regla.FechaInicio.TimeOfDay;
 
         if (regla.FechaFin.HasValue)
@@ -299,23 +309,22 @@
 
         try
         {
-            // CAMBIO: Lógica de Hora Inicio y Hora Fin
+            // Hora logica inici fi si no posa fi +1 hora (revisar)
             var fechaBase = dateStart ?? DateTime.Today;
             var tInicio = timeStart ?? TimeSpan.Zero;
-            var tFin = timeEnd ?? tInicio.Add(TimeSpan.FromHours(1)); // Si no pone fin, +1 hora
+            var tFin = timeEnd ?? tInicio.Add(TimeSpan.FromHours(1));
 
-            // Validar que fin sea mayor que inicio (si es el mismo día)
+            // Validar que Fi sigui mes tard que inici
             if (tFin <= tInicio)
             {
                 Snackbar.Add("La hora de fin debe ser posterior a la de inicio", Severity.Warning);
                 return;
             }
 
-            // Construir DateTime completos
+
             var dtInicio = fechaBase.Date.Add(tInicio);
             var dtFin = fechaBase.Date.Add(tFin);
 
-            // Asignar en UTC
             NuevaRegla.FechaInicio = DateTime.SpecifyKind(dtInicio, DateTimeKind.Utc);
             NuevaRegla.FechaFin = DateTime.SpecifyKind(dtFin, DateTimeKind.Utc);
 
@@ -324,17 +333,14 @@
 
             if (CalendarioSeleccionado.Reglas == null) CalendarioSeleccionado.Reglas = new List<ReglaCalendario>();
 
-            // CAMBIO: Lógica Crear vs Editar
             if (NuevaRegla.Id == 0)
             {
-                // Es NUEVO
                 CalendarioSeleccionado.Reglas.Add(NuevaRegla);
                 DbContext.Reglas.Add(NuevaRegla);
                 Snackbar.Add("Evento creado", Severity.Success);
             }
             else
             {
-                // Es EDICIÓN (Entity Framework ya trackea el objeto porque lo cargamos del contexto)
                 DbContext.Reglas.Update(NuevaRegla);
                 Snackbar.Add("Evento actualizado", Severity.Success);
             }
@@ -350,8 +356,7 @@
         }
     }
 
-    // ... (El resto de métodos EliminarCalendario, EliminarRegla, ImportarCalendario siguen igual) ...
-    private async Task EliminarCalendario(CalendarioDefinition cal)
+    private async Task EliminarCalendario(DefinicionCalendario cal)
     {
         bool? result = await DialogService.ShowMessageBox("Confirmar", "¿Borrar calendario?", yesText: "Borrar",
         cancelText: "Cancelar");
@@ -365,9 +370,30 @@
         }
     }
 
+    private async Task ExportarCalendario(DefinicionCalendario cal, MouseEventArgs e)
+    {
+        try
+        {
+            if (cal.Reglas == null || !cal.Reglas.Any())
+            {
+                Snackbar.Add("El calendario no tiene eventos", Severity.Warning);
+                return;
+            }
+
+            var ics = Engine.ExportToICal(cal.Reglas);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(ics);
+
+            await JS.InvokeVoidAsync("descargarArchivo", bytes, $"{cal.Nombre}.ics", "text/calendar");
+            Snackbar.Add("Calendario exportado", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al exportar: {ex.Message}", Severity.Error);
+        }
+    }
+
     private async Task EliminarRegla(ReglaCalendario regla)
     {
-        // Si estamos editando justo la regla que borramos, limpiar formulario
         if (NuevaRegla.Id == regla.Id) ResetFormulario();
 
         DbContext.Reglas.Remove(regla);
@@ -400,12 +426,66 @@
 
                 if (r.Titulo.Length > 50) r.Titulo = r.Titulo.Substring(0, 50);
             }
-            var nuevoCal = new CalendarioDefinition { Nombre = $"Imp: {file.Name}", Color = "#FF9800", Reglas = reglasImportadas };
+            var nuevoCal = new DefinicionCalendario { Nombre = $"Imp: {file.Name}", Color = "#FF9800", Reglas = reglasImportadas };
             DbContext.Calendarios.Add(nuevoCal);
             await DbContext.SaveChangesAsync();
             await CargarDatos();
             Snackbar.Add($"Importado correctamente", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task ImportarFestivos()
+    {
+        try
+        {
+            var dialogParameters = new DialogParameters<DialogoAjustes>();
+            var dialog = await DialogService.ShowAsync<DialogoFestivos>("Importar Festivos", dialogParameters);
+            var result = await dialog.Result;
+
+#pragma warning disable CS8602
+            if (!result.Canceled && result.Data is (int anio, string codigoPais))
+#pragma warning restore CS8602
+            {
+                Snackbar.Add("Obteniendo festivos...", Severity.Info);
+
+                var festivos = await FestivosService.ObtenerFeriados(anio, codigoPais);
+
+                if (!festivos.Any())
+                {
+                    Snackbar.Add("No se encontraron festivos", Severity.Warning);
+                    return;
+                }
+
+                var reglas = festivos.Select(f => new ReglaCalendario
+                {
+                    Titulo = f.LocalName ?? f.Name,
+                    Categoria = "Festivos",
+                    Color = "#F44336",
+                    Tipo = TipoRegla.Puntual,
+                    FechaInicio = DateTime.SpecifyKind(f.Date.AddHours(0), DateTimeKind.Utc),
+                    FechaFin = DateTime.SpecifyKind(f.Date.AddHours(23).AddMinutes(59), DateTimeKind.Utc),
+                    HoraInicio = TimeSpan.Zero,
+                    HoraFin = new TimeSpan(23, 59, 0),
+                    DiasSemana = new List<int>()
+                }).ToList();
+
+                var nuevoCalendario = new DefinicionCalendario
+                {
+                    Nombre = $"Festivos {anio} - {codigoPais}",
+                    Color = "#F44336",
+                    Reglas = reglas
+                };
+
+                DbContext.Calendarios.Add(nuevoCalendario);
+                await DbContext.SaveChangesAsync();
+                await CargarDatos();
+                Snackbar.Add($"Se importaron {reglas.Count} festivos correctamente", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al importar festivos: {ex.Message}", Severity.Error);
+        }
     }
 }

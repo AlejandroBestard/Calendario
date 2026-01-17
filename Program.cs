@@ -7,29 +7,18 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CONFIGURACIÓN DE BASE DE DATOS ---
+// Configuracio DB
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("No se encontró 'DefaultConnection'.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<AplicacionContextoDB>(options =>
     options.UseNpgsql(connectionString));
-// En Program.cs, cerca de donde añades otros servicios
-builder.Services.AddScoped<Calendario.Servicios.CalendarEngine>();
-
-// --- 2. SERVICIOS DE INTERFAZ ---
+builder.Services.AddScoped<Calendario.Servicios.MotorCalendario>();
 builder.Services.AddMudServices();
-
-builder.Services.AddScoped<Calendario.Servicios.CalendarComponentService>();
-
-// --- 3. SERVICIOS LÓGICOS ---
-// ¡¡ESTA ES LA LÍNEA QUE FALTABA!! 
-// Sin esto, ClimaService no puede conectarse a internet y la app explota.
 builder.Services.AddHttpClient();
-
-builder.Services.AddScoped<CalendarEngine>();
+builder.Services.AddScoped<MotorCalendario>();
 builder.Services.AddScoped<ClimaService>();
-
-// --- 4. API Y SWAGGER ---
+builder.Services.AddScoped<FestivosService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -42,13 +31,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// --- 5. BLAZOR ---
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// --- 6. MIDDLEWARE ---
 
 if (app.Environment.IsDevelopment())
 {

@@ -2,27 +2,28 @@
 @using Calendario.Servicios
 @using Calendario.Modelos
 @using Calendario.Data
-@using Microsoft.EntityFrameworkCore 
+@using Microsoft.EntityFrameworkCore
 
 @rendermode InteractiveServer
 @inject NavigationManager NavManager
-@inject CalendarEngine Engine
+@inject MotorCalendario Engine
 @inject ISnackbar Snackbar
-@inject ApplicationDbContext DbContext 
+@inject AplicacionContextoDB DbContext
 
 <PageTitle>Inicio - Calendario Inteligente</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    
+
     <MudText Typo="Typo.h3" GutterBottom="true" Color="Color.Primary"><b>Bienvenido</b></MudText>
     <MudText Typo="Typo.subtitle1" Class="mb-8">Gestión inteligente de eventos y predicción meteorológica.</MudText>
 
     <MudGrid Class="mb-8">
-        
+
         <MudItem xs="12" md="6">
             <div @onclick="@(() => NavManager.NavigateTo("/clima"))" class="cursor-pointer">
                 <MudPaper Elevation="3" Class="pa-6 rounded-lg d-flex align-center hover-card">
-                    <MudIcon Icon="@Icons.Material.Filled.WbSunny" Color="Color.Warning" Class="mr-4" Size="Size.Large" />
+                    <MudIcon Icon="@Icons.Material.Filled.WbSunny" Color="Color.Warning" Class="mr-4"
+                        Size="Size.Large" />
                     <div>
                         <MudText Typo="Typo.h6"><b>Previsión Meteorológica</b></MudText>
                         <MudText Typo="Typo.body2">Consulta el tiempo para tus eventos</MudText>
@@ -34,7 +35,8 @@
         <MudItem xs="12" md="6">
             <div @onclick="@(() => NavManager.NavigateTo("/calendario-oficial"))" class="cursor-pointer">
                 <MudPaper Elevation="3" Class="pa-6 rounded-lg d-flex align-center hover-card">
-                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Class="mr-4" Size="Size.Large" />
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Class="mr-4"
+                        Size="Size.Large" />
                     <div>
                         <MudText Typo="Typo.h6"><b>Calendario Completo</b></MudText>
                         <MudText Typo="Typo.body2">Ver vistas mensual, semanal y anual</MudText>
@@ -46,10 +48,12 @@
         <MudItem xs="12" md="12">
             <div @onclick="@(() => NavManager.NavigateTo("/gestion-calendarios"))" class="cursor-pointer">
                 <MudPaper Elevation="3" Class="pa-6 rounded-lg d-flex align-center hover-card">
-                    <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Secondary" Class="mr-4" Size="Size.Large" />
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Secondary" Class="mr-4"
+                        Size="Size.Large" />
                     <div>
                         <MudText Typo="Typo.h6"><b>Configuración y Datos</b></MudText>
-                        <MudText Typo="Typo.body2">Importar archivos .ICS, crear reglas y gestionar calendarios</MudText>
+                        <MudText Typo="Typo.body2">Importar archivos .ICS, crear reglas y gestionar calendarios
+                        </MudText>
                     </div>
                 </MudPaper>
             </div>
@@ -59,14 +63,16 @@
 
     <MudPaper Class="pa-8 mt-4" Elevation="2">
         <MudText Typo="Typo.h5" GutterBottom="true">🔍 Verificador Rápido</MudText>
-        <MudText Typo="Typo.body2" Class="mb-4">Comprueba si una fecha cae en algún evento sin abrir el calendario completo.</MudText>
-        
+        <MudText Typo="Typo.body2" Class="mb-4">Comprueba si una fecha cae en algún evento sin abrir el calendario
+            completo.</MudText>
+
         <MudGrid>
             <MudItem xs="12" sm="6">
                 <MudDatePicker Label="Selecciona una fecha" @bind-Date="fechaConsulta" Color="Color.Primary" />
             </MudItem>
             <MudItem xs="12" sm="6" Class="d-flex align-center">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerificarFecha" StartIcon="@Icons.Material.Filled.Search">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerificarFecha"
+                    StartIcon="@Icons.Material.Filled.Search">
                     Consultar Disponibilidad
                 </MudButton>
             </MudItem>
@@ -76,45 +82,54 @@
 </MudContainer>
 
 <style>
-    .cursor-pointer { cursor: pointer; }
-    .hover-card { transition: transform 0.2s, background-color 0.2s; }
-    .hover-card:hover { transform: translateY(-2px); background-color: var(--mud-palette-background-grey); }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .hover-card {
+        transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-2px);
+        background-color: var(--mud-palette-background-grey);
+    }
 </style>
 
 @code {
     private DateTime? fechaConsulta = DateTime.Today;
 
-    // AHORA ES ASÍNCRONO PARA CONSULTAR LA BD
+    // Ferho asincrono com diu es video
     private async Task VerificarFecha()
     {
         if (!fechaConsulta.HasValue) return;
 
-        // 1. Traemos los calendarios y sus reglas de la base de datos
+        // Import calendaris i regles
         var calendarios = await DbContext.Calendarios
-            .Include(c => c.Reglas)
-            .ToListAsync();
+        .Include(c => c.Reglas)
+        .ToListAsync();
 
         bool ocupado = false;
         string infoEvento = "";
 
-        // 2. Usamos el Motor para comprobar fecha por fecha
+        // Emplear motor per conprovar hora
         foreach (var cal in calendarios)
         {
             if (cal.Reglas != null)
             {
-                // Buscamos si alguna regla coincide con la fecha seleccionada
+
                 var coincidencia = cal.Reglas.FirstOrDefault(r => Engine.VerificarReglaIndividual(fechaConsulta.Value, r));
-                
+
                 if (coincidencia != null)
                 {
                     ocupado = true;
                     infoEvento = $"{coincidencia.Titulo} ({cal.Nombre})";
-                    break; // Si encontramos uno, paramos de buscar
+                    break;
                 }
             }
         }
 
-        // 3. Mostramos el resultado real en lugar de navegar
+        // Ojo, mostrar es resultat en lloc de navegar com diu es video
         if (ocupado)
         {
             Snackbar.Add($"OCUPADO: {infoEvento}", Severity.Error);

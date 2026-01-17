@@ -3,17 +3,15 @@ using Calendario.Modelos;
 
 namespace Calendario.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class AplicacionContextoDB : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        public AplicacionContextoDB(DbContextOptions<AplicacionContextoDB> options)
             : base(options)
         {
         }
 
-        public DbSet<Evento> Eventos { get; set; }
-
         //Tables prova tecnica
-        public DbSet<CalendarioDefinition> Calendarios { get; set; }
+        public DbSet<DefinicionCalendario> Calendarios { get; set; }
         public DbSet<ReglaCalendario> Reglas { get; set; }
         public DbSet<ExcepcionRegla> Excepciones { get; set; }
     }

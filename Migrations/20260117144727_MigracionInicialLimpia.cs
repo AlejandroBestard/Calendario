@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Calendario.Migrations
 {
     /// <inheritdoc />
-    public partial class AgregarMotorCalendarios : Migration
+    public partial class MigracionInicialLimpia : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,6 +28,22 @@ namespace Calendario.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Eventos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Titulo = table.Column<string>(type: "text", nullable: false),
+                    Inicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Fin = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Eventos", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Reglas",
                 columns: table => new
                 {
@@ -35,22 +51,24 @@ namespace Calendario.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CalendarioId = table.Column<int>(type: "integer", nullable: false),
                     Titulo = table.Column<string>(type: "text", nullable: false),
+                    Categoria = table.Column<string>(type: "text", nullable: true),
+                    Color = table.Column<string>(type: "text", nullable: true),
                     Tipo = table.Column<int>(type: "integer", nullable: false),
-                    FechaInicio = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    FechaFin = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaInicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaFin = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     HoraInicio = table.Column<TimeSpan>(type: "interval", nullable: false),
                     HoraFin = table.Column<TimeSpan>(type: "interval", nullable: false),
-                    DiasSemana = table.Column<List<int>>(type: "integer[]", nullable: false),
-                    CalendarioDefinitionId = table.Column<int>(type: "integer", nullable: true)
+                    DiasSemana = table.Column<List<int>>(type: "integer[]", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reglas", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Reglas_Calendarios_CalendarioDefinitionId",
-                        column: x => x.CalendarioDefinitionId,
+                        name: "FK_Reglas_Calendarios_CalendarioId",
+                        column: x => x.CalendarioId,
                         principalTable: "Calendarios",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -60,7 +78,7 @@ namespace Calendario.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ReglaCalendarioId = table.Column<int>(type: "integer", nullable: false),
-                    FechaOriginal = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    FechaOriginal = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Tipo = table.Column<int>(type: "integer", nullable: false),
                     NuevaHoraInicio = table.Column<TimeSpan>(type: "interval", nullable: true),
                     NuevaHoraFin = table.Column<TimeSpan>(type: "interval", nullable: true),
@@ -83,14 +101,17 @@ namespace Calendario.Migrations
                 column: "ReglaCalendarioId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reglas_CalendarioDefinitionId",
+                name: "IX_Reglas_CalendarioId",
                 table: "Reglas",
-                column: "CalendarioDefinitionId");
+                column: "CalendarioId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Eventos");
+
             migrationBuilder.DropTable(
                 name: "Excepciones");
 

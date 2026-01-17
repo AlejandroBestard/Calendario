@@ -115,11 +115,11 @@
 
         if (Regla.DiasSemana == null) Regla.DiasSemana = new List<int>();
 
-        // Predeterminados para reglas nuevas
+        // pred per regles noves
         if (Regla.Id == 0)
         {
             FechaInicioTmp = DateTime.Today;
-            FechaFinTmp = DateTime.Today.AddYears(5); // Por defecto validez de 5 años para recurrentes
+            FechaFinTmp = DateTime.Today.AddYears(5);
         }
     }
 
@@ -136,7 +136,7 @@
         Regla.HoraInicio = HoraInicioTmp ?? TimeSpan.Zero;
         Regla.HoraFin = HoraFinTmp ?? TimeSpan.FromHours(1);
 
-        // Guardamos la categoría en el título o en un campo de descripción si lo tienes
+
         Regla.Titulo = $"[{CategoriaSeleccionada}] {Regla.Titulo}";
 
         MudDialog.Close(DialogResult.Ok(Regla));

@@ -7,23 +7,21 @@ using Calendario.Modelos;
 
 namespace Calendario.Servicios
 {
-    // DTO para respuesta API
+    // DTO per resposta API
     public class ResultadoConsulta
     {
-        public bool Matches { get; set; }
-        public List<string> Calendars { get; set; } = new();
+        public bool Coincide { get; set; }
+        public List<string> Calendarios { get; set; } = new();
     }
 
-    public class CalendarEngine
+    public class MotorCalendario
     {
-        // ---------------------------------------------------------
-        // 1. MÉTODOS DE VERIFICACIÓN
-        // ---------------------------------------------------------
 
-        // API: Averiguar si una fecha cae en calendarios (ESTRICTO)
-        public ResultadoConsulta IsDateInCalendars(DateTime fechaConsulta, List<CalendarioDefinition> todosLosCalendarios)
+
+        // api mirar si cau en dates calendari
+        public ResultadoConsulta IsDateInCalendars(DateTime fechaConsulta, List<DefinicionCalendario> todosLosCalendarios)
         {
-            var resultado = new ResultadoConsulta { Matches = false };
+            var resultado = new ResultadoConsulta { Coincide = false };
 
             foreach (var cal in todosLosCalendarios)
             {
@@ -33,25 +31,22 @@ namespace Calendario.Servicios
 
                     if (coincide)
                     {
-                        resultado.Matches = true;
-                        resultado.Calendars.Add(cal.Nombre);
+                        resultado.Coincide = true;
+                        resultado.Calendarios.Add(cal.Nombre);
                     }
                 }
             }
             return resultado;
         }
 
-        // UI: Método usado por CalendarioOficial.razor (SOLO DÍA)
-        // --- CORRECCIÓN PARA LA UI: Ignoramos la hora, solo queremos saber si "cae" en el día ---
+
         public bool VerificarReglaIndividual(DateTime fecha, ReglaCalendario regla)
         {
             return VerificarReglaCompleta(fecha, regla, estricto: false);
         }
 
-        // LÓGICA CENTRAL
         private bool VerificarReglaCompleta(DateTime fechaHora, ReglaCalendario regla, bool estricto)
         {
-            // A) REVISAR EXCEPCIONES
             var excepcion = regla.Excepciones?.FirstOrDefault(e => e.FechaOriginal.Date == fechaHora.Date);
 
             if (excepcion != null)
@@ -60,26 +55,20 @@ namespace Calendario.Servicios
 
                 if (excepcion.Tipo == TipoExcepcion.Modificar)
                 {
-                    // Si es UI (no estricto), basta con saber que existe la excepción ese día
                     if (!estricto) return true;
-                    // Si es API (estricto), miramos la hora exacta de la excepción
                     return VerificarHorario(fechaHora, excepcion.NuevaHoraInicio, excepcion.NuevaHoraFin);
                 }
             }
 
-            // B) REVISAR REGLA ESTÁNDAR
-            // Filtro global de fechas
+
             if (fechaHora.Date < regla.FechaInicio.Date) return false;
             if (regla.FechaFin.HasValue && fechaHora.Date > regla.FechaFin.Value.Date) return false;
 
-            // Verificar patrón (Semanal, LunesViernes, etc.)
             bool patronValido = VerificarPatronFecha(fechaHora, regla);
 
             if (patronValido)
             {
-                // AQUÍ ESTÁ EL TRUCO:
-                // Si NO es estricto (UI), devolvemos true porque el patrón de fecha coincide.
-                // Si ES estricto (API), verificamos también la hora.
+
                 if (!estricto) return true;
 
                 return VerificarHorario(fechaHora, regla.HoraInicio, regla.HoraFin);
@@ -116,9 +105,8 @@ namespace Calendario.Servicios
             }
         }
 
-        // ---------------------------------------------------------
-        // 2. IMPORTAR ICAL
-        // ---------------------------------------------------------
+
+        // IMPORTAR ICAL
         public List<ReglaCalendario> ParsearIcal(string contenido)
         {
             var reglas = new List<ReglaCalendario>();
@@ -141,7 +129,6 @@ namespace Calendario.Servicios
                         if (reglaActual.Tipo == TipoRegla.Puntual && !reglaActual.FechaFin.HasValue)
                             reglaActual.FechaFin = reglaActual.FechaInicio;
 
-                        // Extraer horas para la lógica estricta
                         reglaActual.HoraInicio = reglaActual.FechaInicio.TimeOfDay;
                         if (reglaActual.FechaFin.HasValue)
                             reglaActual.HoraFin = reglaActual.FechaFin.Value.TimeOfDay;
@@ -170,9 +157,7 @@ namespace Calendario.Servicios
             return reglas;
         }
 
-        // ---------------------------------------------------------
-        // 3. EXPORTAR ICAL
-        // ---------------------------------------------------------
+        //  EXPORTAR ICAL
         public string ExportToICal(IEnumerable<ReglaCalendario> reglas)
         {
             var sb = new StringBuilder();
@@ -205,7 +190,7 @@ namespace Calendario.Servicios
             return sb.ToString();
         }
 
-        // --- AUXILIARES ---
+        //  -auxiliars
         private DateTime ObtenerValorFecha(string linea)
         {
             try
@@ -219,7 +204,7 @@ namespace Calendario.Servicios
                     return new DateTime(y, m, d, 0, 0, 0, DateTimeKind.Utc);
                 }
                 if (f.EndsWith("Z") && f.Length >= 16)
-                { // Soporte básico UTC
+                {
                     int y = int.Parse(f.Substring(0, 4)), m = int.Parse(f.Substring(4, 2)), d = int.Parse(f.Substring(6, 2));
                     int h = int.Parse(f.Substring(9, 2)), mn = int.Parse(f.Substring(11, 2)), s = int.Parse(f.Substring(13, 2));
                     return new DateTime(y, m, d, h, mn, s, DateTimeKind.Utc);

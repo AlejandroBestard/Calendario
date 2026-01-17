@@ -22,24 +22,24 @@ namespace Calendario.Servicios
 
                 string url = $"https://api.open-meteo.com/v1/forecast?latitude={latStr}&longitude={lonStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto";
 
-                var respuesta = await _http.GetFromJsonAsync<ClimaResponse>(url);
+                var respuesta = await _http.GetFromJsonAsync<RespuestaClima>(url);
 
 
-                if (respuesta?.Daily == null || respuesta.Daily.Time == null)
+                if (respuesta?.Daily == null || respuesta.Daily.Tiempo == null)
                     return new List<DiaClima>();
 
                 // Reunir ses dades en un arraybid
                 var dias = new List<DiaClima>();
 
                 //  Retorn API de forma paralela
-                for (int i = 0; i < respuesta.Daily.Time.Count; i++)
+                for (int i = 0; i < respuesta.Daily.Tiempo.Count; i++)
                 {
                     dias.Add(new DiaClima
                     {
-                        Fecha = DateTime.Parse(respuesta.Daily.Time[i]),
-                        CodigoClima = respuesta.Daily.WeatherCode[i],
-                        Max = respuesta.Daily.TemperatureMax[i],
-                        Min = respuesta.Daily.TemperatureMin[i]
+                        Fecha = DateTime.Parse(respuesta.Daily.Tiempo[i]),
+                        CodigoClima = respuesta.Daily.CodigoClima[i],
+                        Max = respuesta.Daily.TemperaturaMax[i],
+                        Min = respuesta.Daily.TemperaturaMin[i]
                     });
                 }
                 return dias;
@@ -60,7 +60,7 @@ namespace Calendario.Servicios
 
                 var url = $"https://geocoding-api.open-meteo.com/v1/search?name={nombreCiudad}&count=1&language=es&format=json";
 
-                var respuesta = await _http.GetFromJsonAsync<GeoResponse>(url);
+                var respuesta = await _http.GetFromJsonAsync<GeoRepuesta>(url);
 
                 return respuesta?.Results.FirstOrDefault();
             }
@@ -83,18 +83,18 @@ namespace Calendario.Servicios
                 request.Headers.Add("User-Agent", "CalendarioApp/1.0");
 
                 var response = await _http.SendAsync(request);
-                var data = await response.Content.ReadFromJsonAsync<ReverseGeoResponse>();
+                var data = await response.Content.ReadFromJsonAsync<RevGeoRespuesta>();
 
                 if (data?.Address != null)
                 {
                     // Intentar agafar el nom mes exacte
-                    string ciudad = data.Address.City
-                                    ?? data.Address.Town
-                                    ?? data.Address.Village
-                                    ?? data.Address.State
+                    string ciudad = data.Address.Ciudad
+                                    ?? data.Address.Pueblo
+                                    ?? data.Address.Villa
+                                    ?? data.Address.Comunidad
                                     ?? "Ubicación desconocida";
 
-                    return $"{ciudad}, {data.Address.Country}";
+                    return $"{ciudad}, {data.Address.Pais}";
                 }
 
                 return "Ubicación detectada";

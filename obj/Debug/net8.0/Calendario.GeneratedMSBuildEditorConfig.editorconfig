@@ -37,12 +37,12 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEaWFsb2dvQWp1c3Rlcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[E:/Documentos/Calendario/Components/Pages/DialogoCalendario.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEaWFsb2dvQ2FsZW5kYXJpby5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = 
-
 [E:/Documentos/Calendario/Components/Pages/DialogoEvento.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEaWFsb2dvRXZlbnRvLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Documentos/Calendario/Components/Pages/DialogoFestivos.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEaWFsb2dvRmVzdGl2b3MucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Documentos/Calendario/Components/Pages/DialogoRegla.razor]
@@ -59,10 +59,6 @@ build_metadata.AdditionalFiles.CssScope =
 
 [E:/Documentos/Calendario/Components/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
-[E:/Documentos/Calendario/Components/Pages/Weather.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xXZWF0aGVyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Documentos/Calendario/Components/Routes.razor]

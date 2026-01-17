@@ -8,14 +8,14 @@ using System.Text;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CalendarioController : ControllerBase
+public class ControladorCalendario : ControllerBase
 {
-    private readonly CalendarEngine _engine;
-    private readonly ApplicationDbContext _db;
+    private readonly MotorCalendario _motor;
+    private readonly AplicacionContextoDB _db;
 
-    public CalendarioController(CalendarEngine engine, ApplicationDbContext db)
+    public ControladorCalendario(MotorCalendario motor, AplicacionContextoDB db)
     {
-        _engine = engine;
+        _motor = motor;
         _db = db;
     }
 
@@ -28,9 +28,9 @@ public class CalendarioController : ControllerBase
 
         if (calendario == null) return NotFound("Calendario no encontrado");
 
-        // Usamos la API lógica que ya desarrollamos
+
         var eventos = calendario.Reglas
-            .Where(r => _engine.VerificarReglaIndividual(fecha, r))
+            .Where(r => _motor.VerificarReglaIndividual(fecha, r))
             .Select(r => new { r.Titulo, r.HoraInicio, r.Color, r.Categoria })
             .ToList();
 
@@ -42,14 +42,14 @@ public class CalendarioController : ControllerBase
         });
     }
 
-    // ENDPOINT: api/calendario/exportar/1
+    // endpoint api/calendario/exportar/1
     [HttpGet("exportar/{id}")]
     public async Task<IActionResult> ExportarIcal(int id)
     {
         var calendario = await _db.Calendarios.Include(c => c.Reglas).FirstOrDefaultAsync(c => c.Id == id);
         if (calendario == null) return NotFound();
 
-        var ics = _engine.ExportToICal(calendario.Reglas);
+        var ics = _motor.ExportToICal(calendario.Reglas);
         return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", $"{calendario.Nombre}.ics");
     }
 }

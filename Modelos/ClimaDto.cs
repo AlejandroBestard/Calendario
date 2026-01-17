@@ -2,28 +2,28 @@ using System.Text.Json.Serialization;
 
 namespace Calendario.Modelos
 {
-    // Clase principal
-    public class ClimaResponse
+    //  Jandrito, espabila deixa ses vari en angles
+    public class RespuestaClima
     {
         [JsonPropertyName("daily")]
         // new DailyData() per evitar es null que tira error (vorem si va be revisar)
-        public DailyData Daily { get; set; } = new DailyData();
+        public DataDiaria Daily { get; set; } = new DataDiaria();
     }
 
-    // Dates diaris temp etc.
-    public class DailyData
+    // Dates diaris temp etc. deixa es noms igual
+    public class DataDiaria
     {
         [JsonPropertyName("time")]
-        public List<string> Time { get; set; } = new List<string>();
+        public List<string> Tiempo { get; set; } = new List<string>();
 
         [JsonPropertyName("weather_code")]
-        public List<int> WeatherCode { get; set; } = new List<int>();
+        public List<int> CodigoClima { get; set; } = new List<int>();
 
         [JsonPropertyName("temperature_2m_max")]
-        public List<double> TemperatureMax { get; set; } = new List<double>();
+        public List<double> TemperaturaMax { get; set; } = new List<double>();
 
         [JsonPropertyName("temperature_2m_min")]
-        public List<double> TemperatureMin { get; set; } = new List<double>();
+        public List<double> TemperaturaMin { get; set; } = new List<double>();
     }
 
     // Clase auxiliar per ajudar sa impresso pantalla
@@ -34,8 +34,7 @@ namespace Calendario.Modelos
         public double Max { get; set; }
         public double Min { get; set; }
     }
-    // --- NUEVAS CLASES PARA EL BUSCADOR ---
-    public class GeoResponse
+    public class GeoRepuesta
     {
         [JsonPropertyName("results")]
         public List<CiudadResultado> Results { get; set; } = new List<CiudadResultado>();
@@ -56,8 +55,8 @@ namespace Calendario.Modelos
         public string Country { get; set; } = string.Empty;
     }
 
-    // --- NUEVAS CLASES PARA EL NOMBRE DE LA UBICACIÓN (GPS) ---
-    public class ReverseGeoResponse
+    //  Nom ubicacio gps
+    public class RevGeoRespuesta
     {
         [JsonPropertyName("address")]
         public Direccion Address { get; set; } = new Direccion();
@@ -65,19 +64,19 @@ namespace Calendario.Modelos
 
     public class Direccion
     {
-        [JsonPropertyName("city")]
-        public string? City { get; set; }
+        [JsonPropertyName("ciudad")]
+        public string? Ciudad { get; set; }
 
-        [JsonPropertyName("town")]
-        public string? Town { get; set; }
+        [JsonPropertyName("Publo")]
+        public string? Pueblo { get; set; }
 
-        [JsonPropertyName("village")]
-        public string? Village { get; set; }
+        [JsonPropertyName("villa")]
+        public string? Villa { get; set; }
 
-        [JsonPropertyName("state")]
-        public string? State { get; set; }
+        [JsonPropertyName("estado")]
+        public string? Comunidad { get; set; }
 
-        [JsonPropertyName("country")]
-        public string? Country { get; set; }
+        [JsonPropertyName("pais")]
+        public string? Pais { get; set; }
     }
 }

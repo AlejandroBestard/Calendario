@@ -4,59 +4,61 @@ using System.Text.Json.Serialization;
 
 namespace Calendario.Modelos
 {
-    // 1. Agrupador de reglas (El "Contenedor" o tipo de calendario)
-    public class CalendarioDefinition
+    public class DefinicionCalendario
     {
         [Key]
         public int Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio")]
         public string Nombre { get; set; } = "General";
+
         public string Color { get; set; } = "#2196F3";
 
-        // Relación: Un calendario tiene muchas reglas
         public List<ReglaCalendario> Reglas { get; set; } = new();
     }
 
-    // 2. Definición de la Regla (Evento o patrón recurrente)
     public class ReglaCalendario
     {
         [Key]
         public int Id { get; set; }
+
+        [ForeignKey("DefinicionCalendario")]
         public int CalendarioId { get; set; }
+
+        [JsonIgnore]
+        public DefinicionCalendario? DefinicionCalendario { get; set; }
 
         [Required(ErrorMessage = "El título es obligatorio")]
         public string Titulo { get; set; } = string.Empty;
 
-        // Nuevos campos para personalización (Requisito UI/UX)
         public string? Categoria { get; set; } = "Personal";
-        public string? Color { get; set; } // Color específico para esta regla
+        public string? Color { get; set; }
 
-        // Tipo de regla ampliado
         public TipoRegla Tipo { get; set; }
 
-        // Rango de validez
         public DateTime FechaInicio { get; set; } = DateTime.Today;
 
-        // --- CORRECCIÓN AQUÍ: AÑADIDO EL '?' PARA QUE SEA NULLABLE ---
         public DateTime? FechaFin { get; set; }
-        // -------------------------------------------------------------
 
-        // Horario
         public TimeSpan HoraInicio { get; set; }
         public TimeSpan HoraFin { get; set; }
 
-        // Días de la semana (JSON para que EF lo guarde fácil)
         public List<int> DiasSemana { get; set; } = new();
 
-        // Relación con excepciones
         public List<ExcepcionRegla> Excepciones { get; set; } = new();
     }
 
-    // 3. Excepciones (Modificaciones a ocurrencias específicas)
+
     public class ExcepcionRegla
     {
         [Key]
         public int Id { get; set; }
+
+        [ForeignKey("Regla")]
         public int ReglaCalendarioId { get; set; }
+
+        [JsonIgnore]
+        public ReglaCalendario? Regla { get; set; }
 
         public DateTime FechaOriginal { get; set; }
         public TipoExcepcion Tipo { get; set; }
@@ -69,7 +71,7 @@ namespace Calendario.Modelos
     public enum TipoRegla
     {
         Puntual,
-        Rango,    // Asegúrate de que tu Engine sepa qué hacer con este si lo usas
+        Rango,
         Semanal,
         Mensual,
         Anual,

@@ -6,8 +6,8 @@
 @using Calendario.Data
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
-@inject ApplicationDbContext DbContext
-@inject CalendarEngine Engine
+@inject AplicacionContextoDB DbContext
+@inject MotorCalendario Engine
 
 <PageTitle>Calendario Oficial</PageTitle>
 
@@ -89,8 +89,7 @@
                             <div class="lista-eventos">
                                 @foreach (var evento in ObtenerEventos(dia))
                                 {
-                                    <div class="chip-evento" style="background-color: @(evento.Color ?? "#2196F3")"
-                                        title="@evento.Titulo">
+                                    <div class="chip-evento" style="background-color: @evento.Color" title="@evento.Titulo">
                                         <span style="font-size:0.7em; margin-right:2px;">@evento.FechaInicio.ToString("HH:mm")</span>
                                         @evento.Titulo
                                     </div>
@@ -114,7 +113,7 @@
                                 @foreach (var evento in ObtenerEventos(dia))
                                 {
                                     <MudPaper Class="pa-2 mb-2 evento-semana" Elevation="2"
-                                        Style="@($"border-left: 5px solid {evento.Color ?? "#2196F3"};")">
+                                        Style="@($"border-left: 5px solid {evento.Color};")">
                                         <div class="d-flex justify-space-between">
                                             <MudText Typo="Typo.caption"><b>@evento.FechaInicio.ToString("HH:mm")</b></MudText>
                                         </div>
@@ -127,7 +126,6 @@
                 </div>
                 break;
 
-            // ... (Resto de vistas Dia y Anio se mantienen igual) ...
             case VistaCalendario.Dia:
                 <div class="vista-diaria-container">
                     <MudCard Elevation="0" Outlined="true" Class="pa-4 text-center mb-4">
@@ -356,20 +354,32 @@
 
 @code {
     public enum VistaCalendario { Dia, Semana, Mes, Anio }
+
+    // Clase interna para almacenar evento con su color
+    private class EventoConColor
+    {
+        public ReglaCalendario Regla { get; set; } = default!;
+        public string Color { get; set; } = "#2196F3";
+
+        public string Titulo => Regla.Titulo;
+        public DateTime FechaInicio => Regla.FechaInicio;
+        public string? Categoria => Regla.Categoria;
+    }
+
     private VistaCalendario vistaActual = VistaCalendario.Mes;
     private DateTime fechaReferencia = DateTime.Today;
 
-    private List<CalendarioDefinition> todosLosCalendarios = new();
+    private List<DefinicionCalendario> todosLosCalendarios = new();
     private List<DateTime> diasParaMostrar = new();
     private string[] diasSemana = { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" };
 
-    // CAMBIO: Usamos HashSet para gestión rápida de selección
+    // A nes final empleare hashset crec que anira mes rapid https://www.w3schools.com/dsa/dsa_data_hashsets.php
     private HashSet<int> selectedCalendarIds = new();
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
-        // Inicialmente seleccionamos TODOS
+        // Inicialm els seleccionam tots
         selectedCalendarIds = todosLosCalendarios.Select(c => c.Id).ToHashSet();
         ActualizarGrid();
     }
@@ -379,7 +389,6 @@
         todosLosCalendarios = await DbContext.Calendarios.Include(c => c.Reglas).AsNoTracking().ToListAsync();
     }
 
-    // --- NUEVA LÓGICA DE SELECCIÓN VISUAL (CHIPS) ---
     private void ToggleCalendario(int id)
     {
         if (selectedCalendarIds.Contains(id))
@@ -387,53 +396,59 @@
         else
             selectedCalendarIds.Add(id);
 
-        StateHasChanged(); // Forzar repintado
+        StateHasChanged();
     }
 
     private void ToggleTodos()
     {
         if (selectedCalendarIds.Count == todosLosCalendarios.Count)
-            selectedCalendarIds.Clear(); // Si todos están marcados, desmarcamos todos
+            selectedCalendarIds.Clear(); // Tots marcar desmarcat
         else
-            selectedCalendarIds = todosLosCalendarios.Select(c => c.Id).ToHashSet(); // Si no, marcamos todos
+            selectedCalendarIds = todosLosCalendarios.Select(c => c.Id).ToHashSet(); // Si no, marcam tots
 
         StateHasChanged();
     }
 
-    // ESTO ES LO QUE HACE QUE EL BOTÓN SEA "BONITO"
-    private string GetChipStyle(CalendarioDefinition cal, bool selected)
+    // Chips revisar: https://www.telerik.com/blazor-ui/documentation/components/chiplist/overview
+    private string GetChipStyle(DefinicionCalendario cal, bool selected)
     {
-        // Si no está seleccionado: borde del color, texto del color, fondo blanco
+        // Sino borde color
         if (!selected)
             return $"border-color:{cal.Color}; color:{cal.Color};";
 
-        // Si está seleccionado: fondo del color, texto blanco
+        // Seleccionat fondo blanco
         return $"background-color:{cal.Color}; color:white; border-color:{cal.Color};";
     }
 
-    // --- Lógica de Filtro ---
-    private List<ReglaCalendario> ObtenerEventos(DateTime dia)
+    // Filtro
+    private List<EventoConColor> ObtenerEventos(DateTime dia)
     {
-        var eventos = new List<ReglaCalendario>();
+        var eventos = new List<EventoConColor>();
         if (selectedCalendarIds.Count == 0) return eventos;
 
         foreach (var cal in todosLosCalendarios)
         {
-            // Solo procesamos si el calendario está en el HashSet de seleccionados
+            // Fer que nomes el procesi si esta en el hashset
             if (!selectedCalendarIds.Contains(cal.Id)) continue;
 
             if (cal.Reglas != null)
             {
                 foreach (var r in cal.Reglas)
                 {
-                    if (Engine.VerificarReglaIndividual(dia, r)) eventos.Add(r);
+                    if (Engine.VerificarReglaIndividual(dia, r))
+                    {
+                        eventos.Add(new EventoConColor
+                        {
+                            Regla = r,
+                            Color = r.Color ?? cal.Color ?? "#2196F3"
+                        });
+                    }
                 }
             }
         }
         return eventos.OrderBy(e => e.FechaInicio.TimeOfDay).ToList();
     }
 
-    // ... (El resto de métodos de navegación CambiarVista, NavegarAtras, etc. siguen igual)
     private void CambiarVista(VistaCalendario v) { vistaActual = v; ActualizarGrid(); }
     private void IrAHoy() { fechaReferencia = DateTime.Today; ActualizarGrid(); }
 

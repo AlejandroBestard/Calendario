@@ -4,7 +4,7 @@
 <MudDialog>
     <DialogContent>
         <MudForm>
-            <MudTextField T="string" Label="Título del evento" @bind-Value="ModeloEvento.Titulo" Required="true"
+            <MudTextField T="string" Label="Título del evento" @bind-Value="Regla.Titulo" Required="true"
                 AutoFocus="true" />
 
             <MudGrid Class="mt-2">
@@ -29,7 +29,7 @@
             </MudGrid>
 
             <MudText Class="mt-4 mb-2">Selecciona un color:</MudText>
-            <MudChipSet T="string" SelectedValue="@ModeloEvento.Color" SelectedValueChanged="ColorSeleccionado"
+            <MudChipSet T="string" SelectedValue="@Regla.Color" SelectedValueChanged="ColorSeleccionado"
                 CheckMark="true">
                 <MudChip T="string" Value="@("#2196F3")" Style="background-color:#2196F3; color:white;">General
                 </MudChip>
@@ -45,7 +45,7 @@
         </MudForm>
     </DialogContent>
     <DialogActions>
-        @if (ModeloEvento.Id > 0)
+        @if (Regla.Id > 0)
         {
             <MudButton OnClick="Borrar" Color="Color.Error">Eliminar</MudButton>
         }
@@ -59,11 +59,10 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public Evento ModeloEvento { get; set; } = new Evento
+    public ReglaCalendario Regla { get; set; } = new ReglaCalendario
     {
-        Inicio = DateTime.Now,
-        Fin =
-    DateTime.Now.AddHours(1)
+        FechaInicio = DateTime.Today,
+        Tipo = TipoRegla.Puntual
     };
 
     DateTime? FechaInicio;
@@ -73,15 +72,15 @@
 
     protected override void OnInitialized()
     {
-        FechaInicio = ModeloEvento.Inicio.Date;
-        // Ajustamos para quitar segundos y milisegundos al cargar, queda más limpio
-        HoraInicio = new TimeSpan(ModeloEvento.Inicio.Hour, ModeloEvento.Inicio.Minute, 0);
+        FechaInicio = Regla.FechaInicio.Date;
+        // Ajustar segons i milisegons com diu es video, se pot optimitzar mes
+        HoraInicio = Regla.HoraInicio;
 
-        FechaFin = ModeloEvento.Fin.Date;
-        HoraFin = new TimeSpan(ModeloEvento.Fin.Hour, ModeloEvento.Fin.Minute, 0);
+        FechaFin = Regla.FechaFin?.Date;
+        HoraFin = Regla.HoraFin;
     }
 
-    // Sincronización de fechas
+    // sync de dates
     private void AlCambiarFechaInicio(DateTime? nuevaFecha)
     {
         FechaInicio = nuevaFecha;
@@ -94,7 +93,7 @@
     void ColorSeleccionado(string color)
     {
         if (!string.IsNullOrEmpty(color))
-            ModeloEvento.Color = color;
+            Regla.Color = color;
     }
 
     private void Cancelar() => MudDialog.Cancel();
@@ -103,8 +102,10 @@
 
     private void Guardar()
     {
-        ModeloEvento.Inicio = (FechaInicio ?? DateTime.Now.Date) + (HoraInicio ?? TimeSpan.Zero);
-        ModeloEvento.Fin = (FechaFin ?? DateTime.Now.Date) + (HoraFin ?? TimeSpan.Zero);
-        MudDialog.Close(DialogResult.Ok(ModeloEvento));
+        Regla.FechaInicio = FechaInicio ?? DateTime.Today;
+        Regla.HoraInicio = HoraInicio ?? TimeSpan.Zero;
+        Regla.FechaFin = FechaFin;
+        Regla.HoraFin = HoraFin ?? TimeSpan.Zero;
+        MudDialog.Close(DialogResult.Ok(Regla));
     }
 }

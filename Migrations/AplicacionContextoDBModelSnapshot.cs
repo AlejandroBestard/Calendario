@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Calendario.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,12 +11,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Calendario.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260116115856_AgregarCategoriaYColorAReglas")]
-    partial class AgregarCategoriaYColorAReglas
+    [DbContext(typeof(AplicacionContextoDB))]
+    partial class AplicacionContextoDBModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,7 +23,7 @@ namespace Calendario.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Calendario.Modelos.CalendarioDefinition", b =>
+            modelBuilder.Entity("Calendario.Modelos.DefinicionCalendario", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -60,10 +57,10 @@ namespace Calendario.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Fin")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("Inicio")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
@@ -83,7 +80,7 @@ namespace Calendario.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("FechaOriginal")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeSpan?>("NuevaHoraFin")
                         .HasColumnType("interval");
@@ -115,9 +112,6 @@ namespace Calendario.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CalendarioDefinitionId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("CalendarioId")
                         .HasColumnType("integer");
 
@@ -131,11 +125,11 @@ namespace Calendario.Migrations
                         .IsRequired()
                         .HasColumnType("integer[]");
 
-                    b.Property<DateTime>("FechaFin")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeSpan>("HoraFin")
                         .HasColumnType("interval");
@@ -152,28 +146,34 @@ namespace Calendario.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CalendarioDefinitionId");
+                    b.HasIndex("CalendarioId");
 
                     b.ToTable("Reglas");
                 });
 
             modelBuilder.Entity("Calendario.Modelos.ExcepcionRegla", b =>
                 {
-                    b.HasOne("Calendario.Modelos.ReglaCalendario", null)
+                    b.HasOne("Calendario.Modelos.ReglaCalendario", "Regla")
                         .WithMany("Excepciones")
                         .HasForeignKey("ReglaCalendarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Regla");
                 });
 
             modelBuilder.Entity("Calendario.Modelos.ReglaCalendario", b =>
                 {
-                    b.HasOne("Calendario.Modelos.CalendarioDefinition", null)
+                    b.HasOne("Calendario.Modelos.DefinicionCalendario", "DefinicionCalendario")
                         .WithMany("Reglas")
-                        .HasForeignKey("CalendarioDefinitionId");
+                        .HasForeignKey("CalendarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DefinicionCalendario");
                 });
 
-            modelBuilder.Entity("Calendario.Modelos.CalendarioDefinition", b =>
+            modelBuilder.Entity("Calendario.Modelos.DefinicionCalendario", b =>
                 {
                     b.Navigation("Reglas");
                 });

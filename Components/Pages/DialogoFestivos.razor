@@ -1,0 +1,57 @@
+@using Calendario.Modelos
+@using MudBlazor
+@using MudBlazor.Services
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="int" @bind-Value="Anio" Label="Año" InputType="InputType.Number" Variant="Variant.Outlined"
+            Margin="Margin.Dense" />
+
+        <MudSelect @bind-Value="CodigoPais" Label="País" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-4"
+            Style="width: 100%;">
+            <MudSelectItem Value="@("ES")">España</MudSelectItem>
+            <MudSelectItem Value="@("US")">Estados Unidos</MudSelectItem>
+            <MudSelectItem Value="@("MX")">México</MudSelectItem>
+            <MudSelectItem Value="@("AR")">Argentina</MudSelectItem>
+            <MudSelectItem Value="@("CL")">Chile</MudSelectItem>
+            <MudSelectItem Value="@("CO")">Colombia</MudSelectItem>
+            <MudSelectItem Value="@("PE")">Perú</MudSelectItem>
+            <MudSelectItem Value="@("VE")">Venezuela</MudSelectItem>
+            <MudSelectItem Value="@("BR")">Brasil</MudSelectItem>
+            <MudSelectItem Value="@("FR")">Francia</MudSelectItem>
+            <MudSelectItem Value="@("DE")">Alemania</MudSelectItem>
+            <MudSelectItem Value="@("IT")">Italia</MudSelectItem>
+            <MudSelectItem Value="@("GB")">Reino Unido</MudSelectItem>
+            <MudSelectItem Value="@("PT")">Portugal</MudSelectItem>
+            <MudSelectItem Value="@("CA")">Canadá</MudSelectItem>
+            <MudSelectItem Value="@("AU")">Australia</MudSelectItem>
+            <MudSelectItem Value="@("JP")">Japón</MudSelectItem>
+            <MudSelectItem Value="@("IN")">India</MudSelectItem>
+            <MudSelectItem Value="@("RU")">Rusia</MudSelectItem>
+            <MudSelectItem Value="@("ZA")">Sudáfrica</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Variant="Variant.Filled">Importar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private int Anio = DateTime.Now.Year;
+    private string CodigoPais = "ES";
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok((Anio, CodigoPais)));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
