@@ -5,9 +5,9 @@
 @using Calendario.Data
 @using Calendario.Servicios
 @using Microsoft.EntityFrameworkCore
-@inject AplicacionContextoDB DbContext
+@inject AplicacionContextoDB ContextoBD
 @inject ISnackbar Snackbar
-@inject MotorCalendario Engine
+@inject MotorCalendario Motor
 @inject IJSRuntime JS
 @inject IDialogService DialogService
 @inject FestivosService FestivosService
@@ -223,7 +223,7 @@
 
     private async Task CargarDatos()
     {
-        calendarios = await DbContext.Calendarios
+        calendarios = await ContextoBD.Calendarios
         .Include(c => c.Reglas)
         .OrderBy(c => c.Id)
         .ToListAsync();
@@ -245,8 +245,8 @@
                 Reglas = new
             List<ReglaCalendario>()
             };
-            DbContext.Calendarios.Add(nuevo);
-            await DbContext.SaveChangesAsync();
+            ContextoBD.Calendarios.Add(nuevo);
+            await ContextoBD.SaveChangesAsync();
             await CargarDatos();
             SeleccionarCalendario(calendarios.Last());
             Snackbar.Add("Calendario creado", Severity.Success);
@@ -283,8 +283,8 @@
         if (CalendarioSeleccionado == null) return;
         try
         {
-            DbContext.Calendarios.Update(CalendarioSeleccionado);
-            await DbContext.SaveChangesAsync();
+            ContextoBD.Calendarios.Update(CalendarioSeleccionado);
+            await ContextoBD.SaveChangesAsync();
             Snackbar.Add("Nombre actualizado", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
@@ -337,16 +337,16 @@
             if (NuevaRegla.Id == 0)
             {
                 CalendarioSeleccionado.Reglas.Add(NuevaRegla);
-                DbContext.Reglas.Add(NuevaRegla);
+                ContextoBD.Reglas.Add(NuevaRegla);
                 Snackbar.Add("Evento creado", Severity.Success);
             }
             else
             {
-                DbContext.Reglas.Update(NuevaRegla);
+                ContextoBD.Reglas.Update(NuevaRegla);
                 Snackbar.Add("Evento actualizado", Severity.Success);
             }
 
-            await DbContext.SaveChangesAsync();
+            await ContextoBD.SaveChangesAsync();
             ResetFormulario();
             await CargarDatos();
 
@@ -363,8 +363,8 @@
         cancelText: "Cancelar");
         if (result == true)
         {
-            DbContext.Calendarios.Remove(cal);
-            await DbContext.SaveChangesAsync();
+            ContextoBD.Calendarios.Remove(cal);
+            await ContextoBD.SaveChangesAsync();
             await CargarDatos();
             if (CalendarioSeleccionado == cal) CalendarioSeleccionado = null;
             Snackbar.Add("Eliminado", Severity.Success);
@@ -381,7 +381,7 @@
                 return;
             }
 
-            var ics = Engine.ExportToICal(cal.Reglas);
+            var ics = Motor.ExportToICal(cal.Reglas);
             var bytes = System.Text.Encoding.UTF8.GetBytes(ics);
 
             await JS.InvokeVoidAsync("descargarArchivo", bytes, $"{cal.Nombre}.ics", "text/calendar");
@@ -397,8 +397,8 @@
     {
         if (NuevaRegla.Id == regla.Id) ResetFormulario();
 
-        DbContext.Reglas.Remove(regla);
-        await DbContext.SaveChangesAsync();
+        ContextoBD.Reglas.Remove(regla);
+        await ContextoBD.SaveChangesAsync();
         await CargarDatos();
         Snackbar.Add("Evento eliminado", Severity.Success);
     }
@@ -411,7 +411,7 @@
             using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
             using var reader = new StreamReader(stream);
             var contenido = await reader.ReadToEndAsync();
-            var reglasImportadas = Engine.ParsearIcal(contenido);
+            var reglasImportadas = Motor.ParsearIcal(contenido);
 
             if (!reglasImportadas.Any()) { Snackbar.Add("Sin eventos", Severity.Warning); return; }
 
@@ -428,8 +428,8 @@
                 if (r.Titulo.Length > 50) r.Titulo = r.Titulo.Substring(0, 50);
             }
             var nuevoCal = new DefinicionCalendario { Nombre = $"Imp: {file.Name}", Color = "#FF9800", Reglas = reglasImportadas };
-            DbContext.Calendarios.Add(nuevoCal);
-            await DbContext.SaveChangesAsync();
+            ContextoBD.Calendarios.Add(nuevoCal);
+            await ContextoBD.SaveChangesAsync();
             await CargarDatos();
             Snackbar.Add($"Importado correctamente", Severity.Success);
         }
@@ -478,8 +478,8 @@
                     Reglas = reglas
                 };
 
-                DbContext.Calendarios.Add(nuevoCalendario);
-                await DbContext.SaveChangesAsync();
+                ContextoBD.Calendarios.Add(nuevoCalendario);
+                await ContextoBD.SaveChangesAsync();
                 await CargarDatos();
                 Snackbar.Add($"Se importaron {reglas.Count} festivos correctamente", Severity.Success);
             }

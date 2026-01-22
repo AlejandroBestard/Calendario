@@ -6,8 +6,8 @@
 @using Calendario.Data
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
-@inject AplicacionContextoDB DbContext
-@inject MotorCalendario Engine
+@inject AplicacionContextoDB ContextoBD
+@inject MotorCalendario Motor
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -26,12 +26,12 @@
                 <div class="d-flex flex-wrap gap-2">
                     <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default" OnClick="ToggleTodos"
                         Size="Size.Small">
-                        @(selectedCalendarIds.Count() == todosLosCalendarios.Count ? "Ocultar Todos" : "Ver Todos")
+                        @(idsCalendariosSeleccionados.Count() == todosLosCalendarios.Count ? "Ocultar Todos" : "Ver Todos")
                     </MudChip>
 
                     @foreach (var cal in todosLosCalendarios)
                     {
-                        var estaSeleccionado = selectedCalendarIds.Contains(cal.Id);
+                        var estaSeleccionado = idsCalendariosSeleccionados.Contains(cal.Id);
 
                         <MudChip T="int" OnClick="@(() => ToggleCalendario(cal.Id))"
                             Variant="@(estaSeleccionado ? Variant.Filled : Variant.Outlined)"
@@ -384,19 +384,19 @@
     private string[] diasSemana = { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" };
 
     // A nes final empleare hashset crec que anira mes rapid https://www.w3schools.com/dsa/dsa_data_hashsets.php
-    private HashSet<int> selectedCalendarIds = new();
+    private HashSet<int> idsCalendariosSeleccionados = new();
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
         // Inicialm els seleccionam tots
-        selectedCalendarIds = todosLosCalendarios.Select(c => c.Id).ToHashSet();
+        idsCalendariosSeleccionados = todosLosCalendarios.Select(c => c.Id).ToHashSet();
         ActualizarGrid();
     }
 
     private async Task CargarDatos()
     {
-        todosLosCalendarios = await DbContext.Calendarios
+        todosLosCalendarios = await ContextoBD.Calendarios
         .Include(c => c.Reglas)
         .ThenInclude(r => r.Excepciones)
         .AsNoTracking()
@@ -405,20 +405,20 @@
 
     private void ToggleCalendario(int id)
     {
-        if (selectedCalendarIds.Contains(id))
-            selectedCalendarIds.Remove(id);
+        if (idsCalendariosSeleccionados.Contains(id))
+            idsCalendariosSeleccionados.Remove(id);
         else
-            selectedCalendarIds.Add(id);
+            idsCalendariosSeleccionados.Add(id);
 
         StateHasChanged();
     }
 
     private void ToggleTodos()
     {
-        if (selectedCalendarIds.Count == todosLosCalendarios.Count)
-            selectedCalendarIds.Clear(); // Tots marcar desmarcat
+        if (idsCalendariosSeleccionados.Count == todosLosCalendarios.Count)
+            idsCalendariosSeleccionados.Clear(); // Tots marcar desmarcat
         else
-            selectedCalendarIds = todosLosCalendarios.Select(c => c.Id).ToHashSet(); // Si no, marcam tots
+            idsCalendariosSeleccionados = todosLosCalendarios.Select(c => c.Id).ToHashSet(); // Si no, marcam tots
 
         StateHasChanged();
     }
@@ -438,18 +438,18 @@
     private List<EventoConColor> ObtenerEventos(DateTime dia)
     {
         var eventos = new List<EventoConColor>();
-        if (selectedCalendarIds.Count == 0) return eventos;
+        if (idsCalendariosSeleccionados.Count == 0) return eventos;
 
         foreach (var cal in todosLosCalendarios)
         {
             // Fer que nomes el procesi si esta en el hashset
-            if (!selectedCalendarIds.Contains(cal.Id)) continue;
+            if (!idsCalendariosSeleccionados.Contains(cal.Id)) continue;
 
             if (cal.Reglas != null)
             {
                 foreach (var r in cal.Reglas)
                 {
-                    if (Engine.VerificarReglaIndividual(dia, r))
+                    if (Motor.VerificarReglaIndividual(dia, r))
                     {
                         eventos.Add(new EventoConColor
                         {
@@ -573,7 +573,7 @@
         try
         {
             // Recargar la regla con sus excepciones desde la BD para asegurar el tracking
-            var reglaRastreada = await DbContext.Reglas
+            var reglaRastreada = await ContextoBD.Reglas
             .Include(r => r.Excepciones)
             .FirstOrDefaultAsync(r => r.Id == regla.Id);
 
@@ -605,7 +605,7 @@
             };
 
             reglaRastreada.Excepciones.Add(excepcion);
-            await DbContext.SaveChangesAsync();
+            await ContextoBD.SaveChangesAsync();
 
             await CargarDatos();
             Snackbar.Add($"Evento eliminado para el {fecha:dd/MM/yyyy}", Severity.Success);
@@ -623,7 +623,7 @@
         try
         {
             // Recargar la regla desde la BD (las excepciones se eliminarán automáticamente en cascada)
-            var regla = await DbContext.Reglas
+            var regla = await ContextoBD.Reglas
             .FirstOrDefaultAsync(r => r.Id == reglaId);
 
             if (regla == null)
@@ -633,8 +633,8 @@
             }
 
             // Eliminar la regla (las excepciones se eliminarán automáticamente por cascade)
-            DbContext.Reglas.Remove(regla);
-            await DbContext.SaveChangesAsync();
+            ContextoBD.Reglas.Remove(regla);
+            await ContextoBD.SaveChangesAsync();
 
             await CargarDatos();
             Snackbar.Add("Serie de eventos eliminada completamente", Severity.Success);
@@ -647,3 +647,7 @@
         }
     }
 }
+
+
+
+
