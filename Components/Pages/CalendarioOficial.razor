@@ -26,7 +26,7 @@
                 <div class="d-flex flex-wrap gap-2">
                     <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default" OnClick="ToggleTodos"
                         Size="Size.Small">
-                        @(idsCalendariosSeleccionados.Count() == todosLosCalendarios.Count ? "Ocultar Todos" : "Ver Todos")
+                        @(idsCalendariosSeleccionados.Count() == todosLosCalendarios.Count ? "Ocultar Todos" : "Ver            Todos")
                     </MudChip>
 
                     @foreach (var cal in todosLosCalendarios)
@@ -86,7 +86,8 @@
 
                     @foreach (var dia in diasParaMostrar)
                     {
-                        <div class="celda-mes @(dia.Month != fechaReferencia.Month ? "fuera-mes" : "")">
+                        <div
+                            class="celda-mes @(dia.Month != fechaReferencia.Month ? "fuera-mes" : "") @(EsDiaPasado(dia) && dia.Month == fechaReferencia.Month ? "dia-pasado" : "")">
                             <div class="numero-dia @(EsHoy(dia) ? "hoy" : "")">@dia.Day</div>
                             <div class="lista-eventos">
                                 @foreach (var evento in ObtenerEventos(dia))
@@ -107,7 +108,7 @@
                 <div class="calendario-grid-semana">
                     @foreach (var dia in diasParaMostrar)
                     {
-                        <div class="columna-semana @(EsHoy(dia) ? "borde-hoy" : "")">
+                        <div class="columna-semana @(EsHoy(dia) ? "borde-hoy" : "") @(EsDiaPasado(dia) ? "dia-pasado" : "")">
                             <div class="header-semana @(EsHoy(dia) ? "fondo-hoy" : "")">
                                 <div class="nombre-dia">@dia.ToString("dddd")</div>
                                 <div class="numero-grande">@dia.Day</div>
@@ -174,7 +175,8 @@
                             <div class="mini-grid">
                                 @foreach (var d in GenerarDiasMiniMes(fechaMes))
                                 {
-                                    <div class="mini-dia @(TieneEventos(d) ? "con-evento" : "")">@d.Day</div>
+                                    <div class="mini-dia @(TieneEventos(d) ? "con-evento" : "") @(EsDiaPasado(d) ? "dia-pasado" : "")">
+                                        @d.Day</div>
                                 }
                             </div>
                         </div>
@@ -218,9 +220,34 @@
         overflow: hidden;
     }
 
-    .fuera-mes {
-        background: #fafafa;
+    /* Días de otros meses - solo texto gris, fondo blanco */
+    .celda-mes.fuera-mes {
+        background: white;
         color: #ccc;
+    }
+
+    /* Oscurecer SOLO días que ya pasaron Y son del mes actual */
+    .celda-mes.dia-pasado {
+        background: #f0f0f0 !important;
+    }
+
+    .celda-mes.dia-pasado .numero-dia {
+        color: #999;
+    }
+
+    .celda-mes.dia-pasado .chip-evento {
+        opacity: 0.8;
+    }
+
+    /* Vista semana */
+    .columna-semana.dia-pasado {
+        background: #f8f8f8;
+    }
+
+    /* Vista año */
+    .mini-dia.dia-pasado {
+        opacity: 0.6;
+        color: #999;
     }
 
     .numero-dia {
@@ -522,6 +549,7 @@
         };
     }
     private bool EsHoy(DateTime dia) => dia.Date == DateTime.Today;
+    private bool EsDiaPasado(DateTime dia) => dia.Date < DateTime.Today;
     private void IrAMes(int mes)
     {
         fechaReferencia = new DateTime(fechaReferencia.Year, mes, 1);
@@ -647,7 +675,3 @@
         }
     }
 }
-
-
-
-

@@ -50,7 +50,12 @@
                             <MudListItem OnClick="@(() => SeleccionarCalendario(cal))"
                                 Class="@(CalendarioSeleccionado?.Id == cal.Id ? "mud-theme-primary lighten-4" : "")">
                                 <div class="d-flex justify-space-between align-center">
-                                    <MudText>@cal.Nombre</MudText>
+                                    <div class="d-flex align-center gap-2">
+                                        <div
+                                            style="width: 16px; height: 16px; border-radius: 50%; background-color: @cal.Color; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.3);">
+                                        </div>
+                                        <MudText>@cal.Nombre</MudText>
+                                    </div>
                                     <div class="d-flex gap-1">
                                         <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small"
                                             Color="Color.Info" OnClick="@((e) => ExportarCalendario(cal, e))" />
@@ -77,11 +82,16 @@
                 <MudPaper Class="pa-4" Elevation="2">
 
                     <MudGrid Class="mb-4 align-center">
-                        <MudItem xs="8">
+                        <MudItem xs="12" md="6">
                             <MudTextField @bind-Value="CalendarioSeleccionado.Nombre" Label="Nombre del Calendario"
                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudItem>
-                        <MudItem xs="4">
+                        <MudItem xs="6" md="3">
+                            <MudColorPicker @bind-Text="CalendarioSeleccionado.Color" Label="Color del Calendario"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" ColorPickerMode="ColorPickerMode.RGB"
+                                DisableAlpha="true" />
+                        </MudItem>
+                        <MudItem xs="6" md="3">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
                                 OnClick="GuardarCambiosCalendario">
                                 Actualizar
@@ -129,8 +139,9 @@
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
-                                <MudColorPicker Label="Color" @bind-Text="NuevaRegla.Color" Style="width:100%;"
-                                    ShowAlpha="false" ColorPickerView="ColorPickerView.Palette" />
+                                <MudColorPicker @bind-Text="NuevaRegla.Color" Label="Color del Evento"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" ColorPickerMode="ColorPickerMode.RGB"
+                                    DisableAlpha="true" />
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
