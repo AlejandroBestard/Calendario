@@ -12,7 +12,7 @@ namespace Calendario.Servicios
             _http = http;
         }
 
-        public async Task<List<FestivosDto>> ObtenerFeriados(int anio, string codigoPais)
+        public async Task<List<FestivosDto>> ObtenerFestivos(int anio, string codigoPais)
         {
             try
             {

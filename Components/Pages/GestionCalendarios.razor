@@ -137,7 +137,7 @@
                                 <MudSelect @bind-Value="NuevaRegla.Tipo" Label="Repetición" Variant="Variant.Outlined"
                                     Margin="Margin.Dense">
                                     <MudSelectItem Value="TipoRegla.Puntual">Una vez</MudSelectItem>
-                                    <MudSelectItem Value="TipoRegla.LunesViernes">Lunes a Viernes 💼</MudSelectItem>
+                                    <MudSelectItem Value="TipoRegla.LunesViernes">Lunes a Viernes</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Semanal">Semanal</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Mensual">Mensual</MudSelectItem>
                                     <MudSelectItem Value="TipoRegla.Anual">Anual</MudSelectItem>
@@ -179,8 +179,7 @@
                             </MudTd>
                             <MudTd>
                                 @context.FechaInicio.ToString("dd/MM") <br />
-                                <b>@context.FechaInicio.ToString("HH:mm") - @(context.FechaFin.HasValue ?
-                                                                context.FechaFin.Value.ToString("HH:mm") : "...")</b>
+                                <b>@context.HoraInicio.ToString(@"hh\:mm") - @context.HoraFin.ToString(@"hh\:mm")</b>
                             </MudTd>
                             <MudTd>@context.Tipo</MudTd>
                             <MudTd>
@@ -274,17 +273,9 @@
     {
         NuevaRegla = regla;
 
-        dateStart = regla.FechaInicio.Date; // Agafar hora local
-        timeStart = regla.FechaInicio.TimeOfDay;
-
-        if (regla.FechaFin.HasValue)
-        {
-            timeEnd = regla.FechaFin.Value.TimeOfDay;
-        }
-        else
-        {
-            timeEnd = timeStart.Value.Add(TimeSpan.FromHours(1));
-        }
+        dateStart = regla.FechaInicio.Date;
+        timeStart = regla.HoraInicio;
+        timeEnd = regla.HoraFin;
     }
 
     private async Task GuardarCambiosCalendario()
@@ -321,12 +312,22 @@
                 return;
             }
 
+            // Para eventos recurrentes, FechaInicio es la fecha de inicio y FechaFin es la vigencia (no el mismo día)
+            NuevaRegla.FechaInicio = DateTime.SpecifyKind(fechaBase.Date, DateTimeKind.Utc);
+            NuevaRegla.HoraInicio = tInicio;
+            NuevaRegla.HoraFin = tFin;
 
-            var dtInicio = fechaBase.Date.Add(tInicio);
-            var dtFin = fechaBase.Date.Add(tFin);
-
-            NuevaRegla.FechaInicio = DateTime.SpecifyKind(dtInicio, DateTimeKind.Utc);
-            NuevaRegla.FechaFin = DateTime.SpecifyKind(dtFin, DateTimeKind.Utc);
+            // Para eventos recurrentes (no puntuales), establecer una vigencia larga
+            if (NuevaRegla.Tipo != TipoRegla.Puntual)
+            {
+                // Vigencia de 5 años para eventos recurrentes
+                NuevaRegla.FechaFin = DateTime.SpecifyKind(fechaBase.Date.AddYears(5), DateTimeKind.Utc);
+            }
+            else
+            {
+                // Para eventos puntuales, FechaFin es el mismo día
+                NuevaRegla.FechaFin = DateTime.SpecifyKind(fechaBase.Date, DateTimeKind.Utc);
+            }
 
             NuevaRegla.CalendarioId = CalendarioSeleccionado.Id;
             if (string.IsNullOrEmpty(NuevaRegla.Color)) NuevaRegla.Color = "#2196F3";
@@ -449,7 +450,7 @@
             {
                 Snackbar.Add("Obteniendo festivos...", Severity.Info);
 
-                var festivos = await FestivosService.ObtenerFeriados(anio, codigoPais);
+                var festivos = await FestivosService.ObtenerFestivos(anio, codigoPais);
 
                 if (!festivos.Any())
                 {

@@ -8,6 +8,8 @@
 @using System.Globalization
 @inject AplicacionContextoDB DbContext
 @inject MotorCalendario Engine
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Calendario Oficial</PageTitle>
 
@@ -89,8 +91,9 @@
                             <div class="lista-eventos">
                                 @foreach (var evento in ObtenerEventos(dia))
                                 {
-                                    <div class="chip-evento" style="background-color: @evento.Color" title="@evento.Titulo">
-                                        <span style="font-size:0.7em; margin-right:2px;">@evento.FechaInicio.ToString("HH:mm")</span>
+                                    <div class="chip-evento chip-evento-clickable" style="background-color: @evento.Color"
+                                        title="@evento.Titulo" @onclick="() => MostrarOpcionesEvento(evento, dia)">
+                                        <span style="font-size:0.7em; margin-right:2px;">@evento.HoraInicio.ToString(@"hh\:mm")</span>
                                         @evento.Titulo
                                     </div>
                                 }
@@ -113,9 +116,10 @@
                                 @foreach (var evento in ObtenerEventos(dia))
                                 {
                                     <MudPaper Class="pa-2 mb-2 evento-semana" Elevation="2"
-                                        Style="@($"border-left: 5px solid {evento.Color};")">
+                                        Style="@($"border-left: 5px solid {evento.Color}; cursor: pointer;")"
+                                        @onclick="() => MostrarOpcionesEvento(evento, dia)">
                                         <div class="d-flex justify-space-between">
-                                            <MudText Typo="Typo.caption"><b>@evento.FechaInicio.ToString("HH:mm")</b></MudText>
+                                            <MudText Typo="Typo.caption"><b>@evento.HoraInicio.ToString(@"hh\:mm")</b></MudText>
                                         </div>
                                         <MudText Typo="Typo.body2" Style="line-height:1.2;">@evento.Titulo</MudText>
                                     </MudPaper>
@@ -134,16 +138,17 @@
                     </MudCard>
                     <MudText Typo="Typo.h6" Class="mb-2">Agenda del día:</MudText>
                     @{
-                        var eventosHoy = ObtenerEventos(fechaReferencia).OrderBy(e => e.FechaInicio.TimeOfDay).ToList();
+                        var eventosHoy = ObtenerEventos(fechaReferencia).OrderBy(e => e.HoraInicio).ToList();
                     }
                     @if (eventosHoy.Any())
                     {
                         @foreach (var evt in eventosHoy)
                         {
                             <MudAlert Severity="Severity.Normal" Class="mb-2"
-                                Style="@($"background-color: {evt.Color}20; border-left: 6px solid {evt.Color};")">
+                                Style="@($"background-color: {evt.Color}20; border-left: 6px solid {evt.Color}; cursor: pointer;")"
+                                @onclick="() => MostrarOpcionesEvento(evt, fechaReferencia)">
                                 <div class="d-flex gap-4 align-center">
-                                    <MudText><b>@evt.FechaInicio.ToString("HH:mm")</b></MudText>
+                                    <MudText><b>@evt.HoraInicio.ToString(@"hh\:mm")</b></MudText>
                                     <div>
                                         <MudText><b>@evt.Titulo</b></MudText>
                                         <MudText Typo="Typo.caption">@evt.Categoria</MudText>
@@ -238,12 +243,15 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        cursor: pointer;
         margin-bottom: 1px;
         transition: 0.2s;
     }
 
-    .chip-evento:hover {
+    .chip-evento-clickable {
+        cursor: pointer;
+    }
+
+    .chip-evento-clickable:hover {
         opacity: 0.8;
         transform: scale(1.02);
     }
@@ -363,6 +371,8 @@
 
         public string Titulo => Regla.Titulo;
         public DateTime FechaInicio => Regla.FechaInicio;
+        public TimeSpan HoraInicio => Regla.HoraInicio;
+        public TimeSpan HoraFin => Regla.HoraFin;
         public string? Categoria => Regla.Categoria;
     }
 
@@ -386,7 +396,11 @@
 
     private async Task CargarDatos()
     {
-        todosLosCalendarios = await DbContext.Calendarios.Include(c => c.Reglas).AsNoTracking().ToListAsync();
+        todosLosCalendarios = await DbContext.Calendarios
+        .Include(c => c.Reglas)
+        .ThenInclude(r => r.Excepciones)
+        .AsNoTracking()
+        .ToListAsync();
     }
 
     private void ToggleCalendario(int id)
@@ -446,7 +460,7 @@
                 }
             }
         }
-        return eventos.OrderBy(e => e.FechaInicio.TimeOfDay).ToList();
+        return eventos.OrderBy(e => e.HoraInicio).ToList();
     }
 
     private void CambiarVista(VistaCalendario v) { vistaActual = v; ActualizarGrid(); }
@@ -518,5 +532,118 @@
         var l = new List<DateTime>(); var ini = new DateTime(fm.Year, fm.Month, 1);
         int d = DateTime.DaysInMonth(fm.Year, fm.Month); for (int i = 0; i < d; i++) l.Add(ini.AddDays(i)); return l;
     }
+
     private bool TieneEventos(DateTime d) => ObtenerEventos(d).Any();
+
+    private async Task MostrarOpcionesEvento(EventoConColor evento, DateTime fechaSeleccionada)
+    {
+        var esRecurrente = evento.Regla.Tipo != TipoRegla.Puntual;
+
+        string mensaje = esRecurrente
+        ? $"¿Qué deseas hacer con '{evento.Titulo}' del {fechaSeleccionada:dd/MM/yyyy}?"
+        : $"¿Eliminar el evento '{evento.Titulo}'?";
+
+        var parametros = new DialogParameters
+        {
+            ["Titulo"] = evento.Titulo,
+            ["FechaEvento"] = fechaSeleccionada,
+            ["EsRecurrente"] = esRecurrente,
+            ["Mensaje"] = mensaje
+        };
+
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var dialogo = await DialogService.ShowAsync<DialogoOpcionesEvento>("Opciones de Evento", parametros, opciones);
+        var resultado = await dialogo.Result;
+
+        if (resultado is { Canceled: false, Data: string accion })
+        {
+            if (accion == "EliminarInstancia")
+            {
+                await EliminarInstanciaEvento(evento.Regla, fechaSeleccionada);
+            }
+            else if (accion == "EliminarSerie")
+            {
+                await EliminarSerieCompleta(evento.Regla.Id);
+            }
+        }
+    }
+
+    private async Task EliminarInstanciaEvento(ReglaCalendario regla, DateTime fecha)
+    {
+        try
+        {
+            // Recargar la regla con sus excepciones desde la BD para asegurar el tracking
+            var reglaRastreada = await DbContext.Reglas
+            .Include(r => r.Excepciones)
+            .FirstOrDefaultAsync(r => r.Id == regla.Id);
+
+            if (reglaRastreada == null)
+            {
+                Snackbar.Add("Evento no encontrado", Severity.Warning);
+                return;
+            }
+
+            // Verificar si ya existe una excepción para esta fecha
+            var excepcionExistente = reglaRastreada.Excepciones?
+            .FirstOrDefault(e => e.FechaOriginal.Date == fecha.Date);
+
+            if (excepcionExistente != null)
+            {
+                Snackbar.Add($"Ya existe una excepción para el {fecha:dd/MM/yyyy}", Severity.Warning);
+                return;
+            }
+
+            // Agregar excepción de tipo Eliminar para esta fecha
+            if (reglaRastreada.Excepciones == null)
+                reglaRastreada.Excepciones = new List<ExcepcionRegla>();
+
+            var excepcion = new ExcepcionRegla
+            {
+                ReglaCalendarioId = reglaRastreada.Id,
+                FechaOriginal = DateTime.SpecifyKind(fecha.Date, DateTimeKind.Utc),
+                Tipo = TipoExcepcion.Eliminar
+            };
+
+            reglaRastreada.Excepciones.Add(excepcion);
+            await DbContext.SaveChangesAsync();
+
+            await CargarDatos();
+            Snackbar.Add($"Evento eliminado para el {fecha:dd/MM/yyyy}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add($"Error: {innerMessage}", Severity.Error);
+            Console.WriteLine($"Error completo: {ex}");
+        }
+    }
+
+    private async Task EliminarSerieCompleta(int reglaId)
+    {
+        try
+        {
+            // Recargar la regla desde la BD (las excepciones se eliminarán automáticamente en cascada)
+            var regla = await DbContext.Reglas
+            .FirstOrDefaultAsync(r => r.Id == reglaId);
+
+            if (regla == null)
+            {
+                Snackbar.Add("Evento no encontrado", Severity.Warning);
+                return;
+            }
+
+            // Eliminar la regla (las excepciones se eliminarán automáticamente por cascade)
+            DbContext.Reglas.Remove(regla);
+            await DbContext.SaveChangesAsync();
+
+            await CargarDatos();
+            Snackbar.Add("Serie de eventos eliminada completamente", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add($"Error: {innerMessage}", Severity.Error);
+            Console.WriteLine($"Error completo: {ex}");
+        }
+    }
 }
