@@ -2,10 +2,8 @@
 @rendermode InteractiveServer
 
 @using Calendario.Modelos
-@using Calendario.Data
 @using Calendario.Servicios
-@using Microsoft.EntityFrameworkCore
-@inject AplicacionContextoDB ContextoBD
+@inject RepositorioCalendario Repositorio
 @inject ISnackbar Snackbar
 @inject MotorCalendario Motor
 @inject IJSRuntime JS
@@ -89,7 +87,7 @@
                         <MudItem xs="6" md="3">
                             <MudColorPicker @bind-Text="CalendarioSeleccionado.Color" Label="Color del Calendario"
                                 Variant="Variant.Outlined" Margin="Margin.Dense" ColorPickerMode="ColorPickerMode.RGB"
-                                DisableAlpha="true" />
+                                disablealpha="true" />
                         </MudItem>
                         <MudItem xs="6" md="3">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
@@ -141,7 +139,7 @@
                             <MudItem xs="12" sm="4">
                                 <MudColorPicker @bind-Text="NuevaRegla.Color" Label="Color del Evento"
                                     Variant="Variant.Outlined" Margin="Margin.Dense" ColorPickerMode="ColorPickerMode.RGB"
-                                    DisableAlpha="true" />
+                                    disablealpha="true" />
                             </MudItem>
 
                             <MudItem xs="12" sm="4">
@@ -234,10 +232,7 @@
 
     private async Task CargarDatos()
     {
-        calendarios = await ContextoBD.Calendarios
-        .Include(c => c.Reglas)
-        .OrderBy(c => c.Id)
-        .ToListAsync();
+        calendarios = await Repositorio.ObtenerTodosLosCalendarios();
 
         if (CalendarioSeleccionado != null)
         {
@@ -253,11 +248,9 @@
             {
                 Nombre = "Nuevo Calendario",
                 Color = "#2196F3",
-                Reglas = new
-            List<ReglaCalendario>()
+                Reglas = new List<ReglaCalendario>()
             };
-            ContextoBD.Calendarios.Add(nuevo);
-            await ContextoBD.SaveChangesAsync();
+            await Repositorio.AgregarCalendario(nuevo);
             await CargarDatos();
             SeleccionarCalendario(calendarios.Last());
             Snackbar.Add("Calendario creado", Severity.Success);
@@ -294,8 +287,7 @@
         if (CalendarioSeleccionado == null) return;
         try
         {
-            ContextoBD.Calendarios.Update(CalendarioSeleccionado);
-            await ContextoBD.SaveChangesAsync();
+            await Repositorio.ActualizarCalendario(CalendarioSeleccionado);
             Snackbar.Add("Nombre actualizado", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
@@ -347,17 +339,15 @@
 
             if (NuevaRegla.Id == 0)
             {
-                CalendarioSeleccionado.Reglas.Add(NuevaRegla);
-                ContextoBD.Reglas.Add(NuevaRegla);
+                await Repositorio.AgregarRegla(CalendarioSeleccionado.Id, NuevaRegla);
                 Snackbar.Add("Evento creado", Severity.Success);
             }
             else
             {
-                ContextoBD.Reglas.Update(NuevaRegla);
+                await Repositorio.ActualizarRegla(NuevaRegla);
                 Snackbar.Add("Evento actualizado", Severity.Success);
             }
 
-            await ContextoBD.SaveChangesAsync();
             ResetFormulario();
             await CargarDatos();
 
@@ -374,8 +364,7 @@
         cancelText: "Cancelar");
         if (result == true)
         {
-            ContextoBD.Calendarios.Remove(cal);
-            await ContextoBD.SaveChangesAsync();
+            await Repositorio.EliminarCalendario(cal.Id);
             await CargarDatos();
             if (CalendarioSeleccionado == cal) CalendarioSeleccionado = null;
             Snackbar.Add("Eliminado", Severity.Success);
@@ -408,8 +397,7 @@
     {
         if (NuevaRegla.Id == regla.Id) ResetFormulario();
 
-        ContextoBD.Reglas.Remove(regla);
-        await ContextoBD.SaveChangesAsync();
+        await Repositorio.EliminarRegla(regla.Id);
         await CargarDatos();
         Snackbar.Add("Evento eliminado", Severity.Success);
     }
@@ -439,8 +427,7 @@
                 if (r.Titulo.Length > 50) r.Titulo = r.Titulo.Substring(0, 50);
             }
             var nuevoCal = new DefinicionCalendario { Nombre = $"Imp: {file.Name}", Color = "#FF9800", Reglas = reglasImportadas };
-            ContextoBD.Calendarios.Add(nuevoCal);
-            await ContextoBD.SaveChangesAsync();
+            await Repositorio.AgregarCalendario(nuevoCal);
             await CargarDatos();
             Snackbar.Add($"Importado correctamente", Severity.Success);
         }
@@ -489,8 +476,7 @@
                     Reglas = reglas
                 };
 
-                ContextoBD.Calendarios.Add(nuevoCalendario);
-                await ContextoBD.SaveChangesAsync();
+                await Repositorio.AgregarCalendario(nuevoCalendario);
                 await CargarDatos();
                 Snackbar.Add($"Se importaron {reglas.Count} festivos correctamente", Severity.Success);
             }

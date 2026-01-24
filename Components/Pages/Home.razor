@@ -1,14 +1,12 @@
 ﻿@page "/"
 @using Calendario.Servicios
 @using Calendario.Modelos
-@using Calendario.Data
-@using Microsoft.EntityFrameworkCore
 
 @rendermode InteractiveServer
 @inject NavigationManager NavManager
 @inject MotorCalendario Engine
 @inject ISnackbar Snackbar
-@inject AplicacionContextoDB DbContext
+@inject RepositorioCalendario Repositorio
 
 <PageTitle>Inicio - Calendario Inteligente</PageTitle>
 
@@ -63,20 +61,112 @@
 
     <MudPaper Class="pa-8 mt-4" Elevation="2">
         <MudText Typo="Typo.h5" GutterBottom="true">🔍 Verificador Rápido</MudText>
-        <MudText Typo="Typo.body2" Class="mb-4">Comprueba si una fecha cae en algún evento sin abrir el calendario
-            completo.</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">Busca eventos por fecha y hora específica.</MudText>
 
         <MudGrid>
-            <MudItem xs="12" sm="6">
+            <MudItem xs="12" sm="3">
                 <MudDatePicker Label="Selecciona una fecha" @bind-Date="fechaConsulta" Color="Color.Primary" />
             </MudItem>
-            <MudItem xs="12" sm="6" Class="d-flex align-center">
+            <MudItem xs="12" sm="2">
+                <MudTextField T="TimeSpan ?" Label="Hora (opcional)" @bind-Value="horaConsulta"
+                    InputType="InputType.Time" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int?" Label="Calendario" @bind-Value="calendarioSeleccionadoId" Variant="Variant.Outlined"
+                    Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="null">Todos los calendarios</MudSelectItem>
+                    @foreach (var cal in todosLosCalendarios)
+                    {
+                        <MudSelectItem T="int?" Value="cal.Id">
+                            <div class="d-flex align-center gap-2">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: @cal.Color;">
+                                </div>
+                                @cal.Nombre
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3" Class="d-flex align-center gap-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerificarFecha"
                     StartIcon="@Icons.Material.Filled.Search">
-                    Consultar Disponibilidad
+                    Buscar
                 </MudButton>
+                @if (resultadosBusqueda != null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="LimpiarBusqueda"
+                        StartIcon="@Icons.Material.Filled.Clear">
+                        Limpiar
+                    </MudButton>
+                }
             </MudItem>
         </MudGrid>
+
+        @if (resultadosBusqueda != null)
+        {
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-3">
+                📅 Resultados para: @fechaConsulta?.ToString("dddd, dd MMMM yyyy")
+                @if (horaConsulta.HasValue)
+                {
+                    <text> a las @horaConsulta.Value.ToString(@"hh\:mm")</text>
+                }
+            </MudText>
+
+            @if (resultadosBusqueda.Any())
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <b>OCUPADO:</b> Se encontraron @resultadosBusqueda.Count evento(s)
+                </MudAlert>
+
+                <MudSimpleTable Dense="true" Hover="true" Bordered="true" Style="overflow-x: auto;">
+                    <thead>
+                        <tr>
+                            <th>Calendario</th>
+                            <th>Evento</th>
+                            <th>Horario</th>
+                            <th>Categoría</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var resultado in resultadosBusqueda)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-center gap-2">
+                                        <div
+                                            style="width: 12px; height: 12px; border-radius: 50%; background-color: @resultado.ColorCalendario;">
+                                        </div>
+                                        <span>@resultado.NombreCalendario</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <MudText Typo="Typo.body2"><b>@resultado.Titulo</b></MudText>
+                                </td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                        @resultado.HoraInicio.ToString(@"hh\:mm") - @resultado.HoraFin.ToString(@"hh\:mm")
+                                    </MudChip>
+                                </td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small"
+                                        Style="@($"background-color: {resultado.ColorEvento}; color: white;")">
+                                        @resultado.Categoria
+                                    </MudChip>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                    <b>DISPONIBLE:</b> No hay eventos programados para este momento.
+                </MudAlert>
+            }
+        }
     </MudPaper>
 
 </MudContainer>
@@ -98,45 +188,101 @@
 
 @code {
     private DateTime? fechaConsulta = DateTime.Today;
+    private TimeSpan? horaConsulta = null;
+    private List<ResultadoBusqueda>? resultadosBusqueda = null;
+    private List<DefinicionCalendario> todosLosCalendarios = new();
+    private int? calendarioSeleccionadoId = null;
 
-    // Ferho asincrono com diu es video
+    protected override async Task OnInitializedAsync()
+    {
+        todosLosCalendarios = await Repositorio.ObtenerTodosLosCalendarios();
+    }
+
+    // Clase para almacenar resultados de búsqueda
+    private class ResultadoBusqueda
+    {
+        public string NombreCalendario { get; set; } = "";
+        public string ColorCalendario { get; set; } = "";
+        public string Titulo { get; set; } = "";
+        public TimeSpan HoraInicio { get; set; }
+        public TimeSpan HoraFin { get; set; }
+        public string Categoria { get; set; } = "";
+        public string ColorEvento { get; set; } = "";
+    }
+
     private async Task VerificarFecha()
     {
         if (!fechaConsulta.HasValue) return;
 
-        // Import calendaris i regles
-        var calendarios = await DbContext.Calendarios
-        .Include(c => c.Reglas)
-        .ToListAsync();
+        resultadosBusqueda = new List<ResultadoBusqueda>();
 
-        bool ocupado = false;
-        string infoEvento = "";
+        // Obtener calendarios (todos o solo el seleccionado)
+        var calendarios = todosLosCalendarios;
+        if (calendarioSeleccionadoId.HasValue)
+        {
+            calendarios = todosLosCalendarios.Where(c => c.Id == calendarioSeleccionadoId.Value).ToList();
+        }
 
-        // Emplear motor per conprovar hora
+        // Crear fecha con hora si se especificó
+        DateTime fechaBusqueda = fechaConsulta.Value.Date;
+        if (horaConsulta.HasValue)
+        {
+            fechaBusqueda = fechaBusqueda.Add(horaConsulta.Value);
+        }
+
+        // Buscar eventos en los calendarios filtrados
         foreach (var cal in calendarios)
         {
             if (cal.Reglas != null)
             {
-
-                var coincidencia = cal.Reglas.FirstOrDefault(r => Engine.VerificarReglaIndividual(fechaConsulta.Value, r));
-
-                if (coincidencia != null)
+                foreach (var regla in cal.Reglas)
                 {
-                    ocupado = true;
-                    infoEvento = $"{coincidencia.Titulo} ({cal.Nombre})";
-                    break;
+                    // Si hay hora específica, verificar que el evento esté activo en ese momento
+                    bool coincide = false;
+
+                    if (horaConsulta.HasValue)
+                    {
+                        // Verificar que la fecha coincida y la hora esté dentro del rango
+                        if (Engine.VerificarReglaIndividual(fechaBusqueda.Date, regla))
+                        {
+                            // Verificar que la hora esté dentro del evento
+                            if (horaConsulta.Value >= regla.HoraInicio && horaConsulta.Value < regla.HoraFin)
+                            {
+                                coincide = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Sin hora específica, buscar todos los eventos del día
+                        coincide = Engine.VerificarReglaIndividual(fechaBusqueda, regla);
+                    }
+
+                    if (coincide)
+                    {
+                        resultadosBusqueda.Add(new ResultadoBusqueda
+                        {
+                            NombreCalendario = cal.Nombre,
+                            ColorCalendario = cal.Color,
+                            Titulo = regla.Titulo,
+                            HoraInicio = regla.HoraInicio,
+                            HoraFin = regla.HoraFin,
+                            Categoria = regla.Categoria ?? "General",
+                            ColorEvento = regla.Color ?? cal.Color
+                        });
+                    }
                 }
             }
         }
 
-        // Ojo, mostrar es resultat en lloc de navegar com diu es video
-        if (ocupado)
-        {
-            Snackbar.Add($"OCUPADO: {infoEvento}", Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("DISPONIBLE: No hay eventos para este día.", Severity.Success);
-        }
+        // Ordenar por hora de inicio
+        resultadosBusqueda = resultadosBusqueda.OrderBy(r => r.HoraInicio).ToList();
+    }
+
+    private void LimpiarBusqueda()
+    {
+        resultadosBusqueda = null;
+        horaConsulta = null;
+        calendarioSeleccionadoId = null;
     }
 }

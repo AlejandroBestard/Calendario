@@ -3,10 +3,8 @@
 
 @using Calendario.Servicios
 @using Calendario.Modelos
-@using Calendario.Data
-@using Microsoft.EntityFrameworkCore
 @using System.Globalization
-@inject AplicacionContextoDB ContextoBD
+@inject RepositorioCalendario Repositorio
 @inject MotorCalendario Motor
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -423,11 +421,7 @@
 
     private async Task CargarDatos()
     {
-        todosLosCalendarios = await ContextoBD.Calendarios
-        .Include(c => c.Reglas)
-        .ThenInclude(r => r.Excepciones)
-        .AsNoTracking()
-        .ToListAsync();
+        todosLosCalendarios = await Repositorio.ObtenerTodosLosCalendarios();
     }
 
     private void ToggleCalendario(int id)
@@ -600,19 +594,8 @@
     {
         try
         {
-            // Recargar la regla con sus excepciones desde la BD para asegurar el tracking
-            var reglaRastreada = await ContextoBD.Reglas
-            .Include(r => r.Excepciones)
-            .FirstOrDefaultAsync(r => r.Id == regla.Id);
-
-            if (reglaRastreada == null)
-            {
-                Snackbar.Add("Evento no encontrado", Severity.Warning);
-                return;
-            }
-
             // Verificar si ya existe una excepción para esta fecha
-            var excepcionExistente = reglaRastreada.Excepciones?
+            var excepcionExistente = regla.Excepciones?
             .FirstOrDefault(e => e.FechaOriginal.Date == fecha.Date);
 
             if (excepcionExistente != null)
@@ -622,19 +605,14 @@
             }
 
             // Agregar excepción de tipo Eliminar para esta fecha
-            if (reglaRastreada.Excepciones == null)
-                reglaRastreada.Excepciones = new List<ExcepcionRegla>();
-
             var excepcion = new ExcepcionRegla
             {
-                ReglaCalendarioId = reglaRastreada.Id,
+                ReglaCalendarioId = regla.Id,
                 FechaOriginal = DateTime.SpecifyKind(fecha.Date, DateTimeKind.Utc),
                 Tipo = TipoExcepcion.Eliminar
             };
 
-            reglaRastreada.Excepciones.Add(excepcion);
-            await ContextoBD.SaveChangesAsync();
-
+            await Repositorio.AgregarExcepcion(regla.Id, excepcion);
             await CargarDatos();
             Snackbar.Add($"Evento eliminado para el {fecha:dd/MM/yyyy}", Severity.Success);
         }
@@ -650,19 +628,13 @@
     {
         try
         {
-            // Recargar la regla desde la BD (las excepciones se eliminarán automáticamente en cascada)
-            var regla = await ContextoBD.Reglas
-            .FirstOrDefaultAsync(r => r.Id == reglaId);
+            var eliminado = await Repositorio.EliminarRegla(reglaId);
 
-            if (regla == null)
+            if (!eliminado)
             {
                 Snackbar.Add("Evento no encontrado", Severity.Warning);
                 return;
             }
-
-            // Eliminar la regla (las excepciones se eliminarán automáticamente por cascade)
-            ContextoBD.Reglas.Remove(regla);
-            await ContextoBD.SaveChangesAsync();
 
             await CargarDatos();
             Snackbar.Add("Serie de eventos eliminada completamente", Severity.Success);

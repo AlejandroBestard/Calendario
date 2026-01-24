@@ -8,16 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Ical.Net" Version="5.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="MudBlazor" Version="8.15.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 

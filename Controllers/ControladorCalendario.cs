@@ -1,30 +1,24 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Calendario.Data;
 using Calendario.Modelos;
 using Calendario.Servicios;
-using System.Text;
-
 
 [ApiController]
 [Route("api/[controller]")]
 public class ControladorCalendario : ControllerBase
 {
     private readonly MotorCalendario _motor;
-    private readonly AplicacionContextoDB _db;
+    private readonly RepositorioCalendario _repositorio;
 
-    public ControladorCalendario(MotorCalendario motor, AplicacionContextoDB db)
+    public ControladorCalendario(MotorCalendario motor, RepositorioCalendario repositorio)
     {
         _motor = motor;
-        _db = db;
+        _repositorio = repositorio;
     }
 
     [HttpGet("verificar")]
-    public async Task<IActionResult> VerificarFecha([FromQuery] DateTime fecha, [FromQuery] int calendarioId)
+    public async Task<IActionResult> VerificarFecha([FromQuery] DateTime fecha, [FromQuery] int calendarioId, [FromQuery] TimeSpan? hora = null)
     {
-        var calendario = await _db.Calendarios
-            .Include(c => c.Reglas)
-            .FirstOrDefaultAsync(c => c.Id == calendarioId);
+        var calendario = await _repositorio.ObtenerCalendarioPorId(calendarioId);
 
         if (calendario == null) return NotFound("Calendario no encontrado");
 
@@ -34,9 +28,19 @@ public class ControladorCalendario : ControllerBase
             .Select(r => new { r.Titulo, r.HoraInicio, r.Color, r.Categoria })
             .ToList();
 
+        // Si se proporcionó una hora, filtrar eventos que ocurren en esa hora
+        if (hora.HasValue)
+        {
+            eventos = eventos
+                .Where(e => e.HoraInicio.Hours == hora.Value.Hours &&
+                           e.HoraInicio.Minutes == hora.Value.Minutes)
+                .ToList();
+        }
+
         return Ok(new
         {
             fecha = fecha.ToShortDateString(),
+            hora = hora?.ToString(@"hh\:mm"),
             tieneEventos = eventos.Any(),
             eventos = eventos
         });
@@ -46,7 +50,7 @@ public class ControladorCalendario : ControllerBase
     [HttpGet("exportar/{id}")]
     public async Task<IActionResult> ExportarIcal(int id)
     {
-        var calendario = await _db.Calendarios.Include(c => c.Reglas).FirstOrDefaultAsync(c => c.Id == id);
+        var calendario = await _repositorio.ObtenerCalendarioPorId(id);
         if (calendario == null) return NotFound();
 
         var ics = _motor.ExportToICal(calendario.Reglas);
