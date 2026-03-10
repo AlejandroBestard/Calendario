@@ -346,13 +346,6 @@ http://localhost:5275/swagger
 - `Modificar`: Modifica una instancia
 - `Eliminar`: Elimina una instancia
 
-## 🔒 Seguridad y Privacidad
-
-- **Datos locales**: Toda la información se guarda en tu equipo
-- **Sin registro**: No requiere cuenta ni autenticación
-- **Sin telemetría**: No se envían datos de uso
-- **APIs públicas**: Solo se conecta a APIs meteorológicas y de festivos
-
 ## 📊 Almacenamiento
 
 ### Ubicación del Archivo
@@ -435,13 +428,6 @@ Para reportar problemas o sugerencias:
 ## 📄 Licencia
 
 Este proyecto es de código abierto y está disponible para uso personal y educativo.
-
-## 🙏 Agradecimientos
-
-- **MudBlazor**: Framework de componentes UI
-- **iCal.Net**: Librería para formato iCalendar
-- **OpenWeatherMap**: API meteorológica
-- **Nager.Date**: API de festivos públicos
 
 ---
 
