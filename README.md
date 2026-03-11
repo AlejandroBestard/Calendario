@@ -2,9 +2,6 @@
 
 Sistema de gestión de calendarios y eventos con múltiples vistas, importación de formatos externos, verificación de disponibilidad y predicción meteorológica.
 
-## Características Principales
-
-
 ## Instalación y Ejecución
 
 ### Requisitos Previos
